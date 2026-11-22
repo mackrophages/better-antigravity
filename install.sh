@@ -57,12 +57,27 @@ for name in "${TARGETS[@]}"; do
     echo "Unknown plugin: $name" >&2
     exit 1
   fi
+  was_disabled="$(node -e '
+    const fs = require("node:fs"), p = process.env.HOME + "/.gemini/config/config.json";
+    try {
+      const c = JSON.parse(fs.readFileSync(p, "utf8"));
+      process.stdout.write(c?.plugins?.[process.argv[1]]?.enabled === false ? "1" : "0");
+    } catch { process.stdout.write("0"); }
+  ' "$name")"
   agy plugin validate --strict "$plugin_path" >/dev/null
   # Reinstall cleanly if already present so updates take effect immediately
   if [[ -d "$HOME/.gemini/config/plugins/$name" ]]; then
     agy plugin uninstall "$name" >/dev/null 2>&1 || rm -rf "$HOME/.gemini/config/plugins/$name"
   fi
   agy plugin install "$plugin_path"
+  # Keep previously disabled plugins disabled, and default narrator to disabled in proot without TTS
+  if [[ "$was_disabled" == "1" ]]; then
+    agy plugin disable "$name" >/dev/null 2>&1 || true
+  elif [[ "$name" == "narrator" && ( $# -eq 0 || "${1:-}" == "--all" ) && -n "${PROOT_TMP_DIR:-}${TERMUX_VERSION:-}" ]]; then
+    if ! command -v termux-tts-speak >/dev/null 2>&1 && ! command -v espeak-ng >/dev/null 2>&1 && ! command -v spd-say >/dev/null 2>&1; then
+      agy plugin disable narrator >/dev/null 2>&1 || true
+    fi
+  fi
   case "$name" in
     sub-meter|context-meter|token-meter|narrator|time-machine|after|think-hard|use-hydrogen)
       NEED_HUD=1
