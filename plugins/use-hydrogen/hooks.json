@@ -1,5 +1,5 @@
 {
-  "use-flash-hook": {
+  "use-hydrogen-hook": {
     "SessionStart": [
       {
         "type": "command",
@@ -10,14 +10,14 @@
     "PreInvocation": [
       {
         "type": "command",
-        "command": "node ./scripts/use-flash-hook.mjs pre",
+        "command": "node ./scripts/use-hydrogen-hook.mjs pre",
         "timeout": 10
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "node ./scripts/use-flash-hook.mjs stop",
+        "command": "node ./scripts/use-hydrogen-hook.mjs stop",
         "timeout": 10
       }
     ]

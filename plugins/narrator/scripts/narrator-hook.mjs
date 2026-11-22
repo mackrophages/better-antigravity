@@ -6,12 +6,18 @@ import {
   ensureStatusLineInstalled,
   getPluginConfig,
   isHeadless,
+  isSubcall,
   readStdinJson,
   writeState
 } from './lib/store.mjs'
 import { summarizeTranscript } from './lib/transcript.mjs'
 import { conciseSpokenSummary, guessLanguage } from './core/text.mjs'
 import { speakDetached, stopSpeaking } from './core/speaker.mjs'
+
+if (isSubcall()) {
+  process.stdout.write('{}\n')
+  process.exit(0)
+}
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const event = process.argv[2] || ''

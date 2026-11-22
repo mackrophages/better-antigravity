@@ -8,12 +8,18 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   ensureStatusLineInstalled,
+  isSubcall,
   readStdinJson,
   readState,
   repoKey,
   writeState
 } from './lib/store.mjs'
 import { markIdle, normalizeState, takeNext } from './core/queue-engine.mjs'
+
+if (isSubcall()) {
+  process.stdout.write('{}\n')
+  process.exit(0)
+}
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const event = process.argv[2] || ''

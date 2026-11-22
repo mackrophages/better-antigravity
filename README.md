@@ -2,7 +2,7 @@
 
 Adaptación nativa y de código abierto de **[betterclaude.dev](https://betterclaude.dev/)** ([`midudev/better-claude`](https://github.com/midudev/better-claude)) para **Google Antigravity (`agy`)**.
 
-Incluye los **11 plugins completos** (los 7 destacados en la web pública más los 4 adicionales del repositorio oficial), reescritos sobre las superficies nativas de Antigravity: `plugin.json`, `skills/<nombre>/SKILL.md`, `hooks.json` (`SessionStart`, `PreInvocation`, `PostInvocation`, `PreToolUse`, `Stop`), subagentes `flash` y un multiplexor unificado de `statusLine` en Node ESM con **cero dependencias externas** (sin `node_modules`, inmune al fallo de hardlinks bajo Termux/proot).
+Incluye los **11 plugins completos** (los 7 destacados en la web pública más los 4 adicionales del repositorio oficial), reescritos sobre las superficies nativas de Antigravity: `plugin.json`, `skills/<nombre>/SKILL.md`, `hooks.json` (`SessionStart`, `PreInvocation`, `PostInvocation`, `PreToolUse`, `Stop`), ejecución equilibrada sobre **Gemini 4 Hydrogen** y un multiplexor unificado de `statusLine` en Node ESM con **cero dependencias externas** (sin `node_modules`, inmune al fallo de hardlinks bajo Termux/proot).
 
 ## Catálogo de los 11 Plugins
 
@@ -16,7 +16,7 @@ Incluye los **11 plugins completos** (los 7 destacados en la web pública más l
 | **Narrator** | `/narrator` + hook `Stop` | Resume en voz alta cada turno terminado en tu idioma (`AVSpeechSynthesizer`, `System.Speech`, `spd-say`/`espeak-ng` o `termux-tts-speak`) con cola compartida entre ventanas. | [`plugins/narrator/`](plugins/narrator/README.md) |
 | **Time Machine** | `/timeline` + hooks Git | Cada turno que edita archivos (incluido Bash) crea un snapshot Git en un índice propio (`.git/time-machine-<sesión>.index`) bajo `refs/time-machine/*` sin tocar `HEAD`, ramas ni staging. | [`plugins/time-machine/`](plugins/time-machine/README.md) |
 | **After** | `/after` y `/before` + `agy-after` | Cola FIFO sin desviar el turno en curso: encola tareas en español o inglés (desde otra terminal con `agy-after after "<tarea>"`) y el hook `Stop` encadena la siguiente con `decision: "continue"`. | [`plugins/after/`](plugins/after/README.md) |
-| **Use Flash** | Prefijo `_` o `agy --agent flash-runner` | Adaptación de *Use Haiku*: iniciar con `_` pide al turno actual delegar el trabajo pesado en `flash-runner` (`model: flash`), o usa `agy --agent flash-runner` para correr toda la sesión directo en Flash. | [`plugins/use-flash/`](plugins/use-flash/README.md) |
+| **Use Hydrogen** | Prefijo `_`, `/use-hydrogen` o `agy-hydrogen` | Adaptación de *Use Haiku* sobre **Gemini 4 Hydrogen** (`gemini-4-hydrogen-high`, configurable en `low\|medium\|high\|xhigh`): iniciar con `_` ejecuta el turno en Hydrogen verificando el modelo en `transcript.jsonl`, o abre sesión directa con `agy-hydrogen`. | [`plugins/use-hydrogen/`](plugins/use-hydrogen/README.md) |
 | **Think Hard** | Prefijo `+` o `/think-hard` | Iniciar un prompt con `+` activa rigor analítico máximo (`+MAX` en `statusLine`) únicamente durante ese turno. | [`plugins/think-hard/`](plugins/think-hard/README.md) |
 | **Token Meter** | Barra `statusLine` + `/token-meter` | Muestra los tokens de entrada (`↑`), salida (`↓`) y caché del turno junto al acumulado de la sesión. | [`plugins/token-meter/`](plugins/token-meter/README.md) |
 

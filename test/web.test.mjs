@@ -26,10 +26,11 @@ describe('web/index.html offline deliverable contract', () => {
     // Verify all 11 plugins are embedded in CATALOG and selectable
     for (const id of [
       'quick-peek', 'image-preview', 'sub-meter', 'context-meter', 'commit',
-      'narrator', 'time-machine', 'after', 'use-flash', 'think-hard', 'token-meter'
+      'narrator', 'time-machine', 'after', 'use-hydrogen', 'think-hard', 'token-meter'
     ]) {
       assert.ok(html.includes(`data-plugin="${id}"`), `Missing picker button for ${id}`)
     }
+    assert.equal(html.includes('use-flash'), false, 'Legacy use-flash should not appear in web catalog')
     assert.ok(html.includes('&lt;tarea&gt;'), 'Angle brackets inside code spans must be HTML-escaped')
     assert.equal(html.includes('<code>/after <tarea>'), false, 'No unescaped <tarea> tag allowed')
     assert.match(html, /install\.sh /)

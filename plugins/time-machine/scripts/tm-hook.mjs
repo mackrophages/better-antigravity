@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import {
   ensureStatusLineInstalled,
   getPluginConfig,
+  isSubcall,
   readStdinJson,
   readState,
   repoKey,
@@ -22,6 +23,11 @@ import { shorten, summary } from './core/format.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const event = process.argv[2] || ''
+
+if (isSubcall()) {
+  process.stdout.write(event === 'pre-tool' ? '{"decision":"allow"}\n' : '{}\n')
+  process.exit(0)
+}
 const payload = await readStdinJson()
 const cwd = payload.cwd || payload.workspacePaths?.[0] || process.cwd()
 const sid = payload.conversationId || 'default'

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Unified composable statusLine engine for Better Antigravity.
 // Renders active HUD widgets (Context Meter, Token Meter, Sub Meter, Time Machine,
-// After Queue, Think Hard / Use Flash turn badges, and Narrator switch) from Antigravity's
+// After Queue, Think Hard / Use Hydrogen turn badges, and Narrator switch) from Antigravity's
 // live JSON statusLine payload, dynamically fitting terminal_width.
 
 import fs from 'node:fs'
@@ -288,7 +288,7 @@ function renderTurnModeBadges (payload, rootDir) {
   if (!flags) return null
   const parts = []
   if (flags.thinkHard) parts.push(`${MAGENTA}${BOLD}+MAX${R}`)
-  if (flags.useFlash) parts.push(`${CYAN}${BOLD}_Flash${R}`)
+  if (flags.useHydrogen) parts.push(`${CYAN}${BOLD}_Hydrogen${R}`)
   if (parts.length === 0) return null
   const joined = parts.join(' ')
   return { full: joined, compact: joined, minimal: joined }
@@ -353,7 +353,7 @@ export function formatStatusLine (payload, { nowMs = Date.now() } = {}) {
     const w = renderAfterBadge(payload, rootDir)
     if (w) widgets.push(w)
   }
-  if (isEnabled('think-hard', globalCfg) || isEnabled('use-flash', globalCfg)) {
+  if (isEnabled('think-hard', globalCfg) || isEnabled('use-hydrogen', globalCfg)) {
     const w = renderTurnModeBadges(payload, rootDir)
     if (w) widgets.push(w)
   }

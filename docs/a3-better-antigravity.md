@@ -72,7 +72,7 @@
 ## 5. Contramedidas y Poka-Yoke
 | Opción | Causa | Nivel | Impacto | Esfuerzo | Cuadrante | Decisión | Predicción |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| O-1 Adaptar los 11 plugins autónomos (`plugin.json`, `skills/`, `hooks.json`, `agents/` con `flash` y `sync-shared.mjs`) | A | raíz | alto | bajo (5 h) | Implementar | elegida | plugins validados con `--strict`: de 0 de 11 a 11 de 11 (base: docs/evidencia-gemba-inicial.log:8) |
+| O-1 Adaptar los 11 plugins autónomos (`plugin.json`, `skills/`, `hooks.json`, `use-hydrogen` sobre `gemini-4-hydrogen-high` y `sync-shared.mjs`) | A | raíz | alto | bajo (5 h) | Implementar | elegida | plugins validados con `--strict`: de 0 de 11 a 11 de 11 (base: docs/evidencia-gemba-inicial.log:8) |
 | O-2 Motor Node ESM cero dependencias + `PIL`/`librsvg`/`pdftoppm`/`ffmpeg` + `better-statusline.mjs` | B | poka-yoke | alto | bajo (5 h) | Implementar | elegida | fallos por binarios faltantes o hardlinks en proot: de 3 a 0 (base: docs/evidencia-gemba-inicial.log:6) |
 | O-3 Web `better-antigravity` en un solo HTML UTF-8 + `install.sh` idempotente + comando `agy-after` | C | raíz | alto | bajo (5 h) | Implementar | elegida | comandos fallidos al instalar o actualizar: de 2 a 0 (base: docs/evidencia-gemba-inicial.log:9) |
 | O-4 Empaquetar los 11 en un único plugin monolítico indivisible | A | curita | bajo | bajo (5 h) | Posible | descartada | impide elegir e instalar plugins sueltos como en betterclaude.dev (base: https://betterclaude.dev/) |

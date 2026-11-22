@@ -29,6 +29,10 @@ export function isHeadless () {
   return process.env.CLAUDE_MEM_SIN_HOOK === '1' || process.env.AGY_HEADLESS === '1'
 }
 
+export function isSubcall () {
+  return process.env.BETTER_AGY_SUBCALL === '1'
+}
+
 export function readJsonFile (filePath, fallback = null) {
   try {
     const raw = fs.readFileSync(filePath, 'utf8')

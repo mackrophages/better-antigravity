@@ -2,7 +2,7 @@
 1. agy plugin validate /root/better-claude-upstream/.claude-plugin/marketplace.json -> Error: cannot unmarshal string into Go struct field manifest.plugins.0.source
 2. agy plugin validate /root/better-claude-upstream/plugins/commit -> Error: no plugin.json found at the plugin root (0 de 11 plugins validan en estricto)
 3. 10 de 11 plugins de midudev/better-claude usan hooks/hooks.json con {"modules":["./register.tsx"]} e importan 'claude-code' (inexistente en Antigravity)
-4. agy models -> 27 modelos disponibles; claude-haiku-5-5 no existe en agy; equivalentes rapidos: flash / Gemini 3.8 Flash
+4. agy models -> 27 modelos disponibles; claude-haiku-5-5 no existe en agy; equivalente equilibrado en Gemini 4: gemini-4-hydrogen-high (low/medium/high/xhigh)
 5. Entorno proot aarch64: node v24.22.1, bun 1.4.5, python3 3.14.4 con PIL 12.1.1, pdftoppm, ffmpeg, xdg-open presentes; jq, magick, spd-say, espeak-ng ausentes
 6. Suite pura de upstream (after y time-machine): node --test -> 157/157 pruebas en verde
 7. Prototipo nativo con plugin.json + hooks.json + skills + agents + logo.svg -> agy plugin validate --strict salida 0

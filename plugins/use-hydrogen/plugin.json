@@ -1,13 +1,14 @@
 {
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
-  "name": "use-flash",
-  "displayName": "Use Flash",
+  "name": "use-hydrogen",
+  "displayName": "Use Hydrogen",
   "version": "1.0.0",
-  "description": "Start any prompt with _ to route fast tasks to Flash (Antigravity's adaptation of Use Haiku), keeping your session model unchanged.",
+  "description": "Start any prompt with _ to execute that turn on Gemini 4 Hydrogen (Antigravity's balanced analog to Use Haiku), keeping your main session model unchanged.",
   "logo": "assets/logo.svg",
   "suggestedPrompts": [
     "_summarize the latest git commit in two sentences",
-    "/use-flash explain what package.json scripts exist here"
+    "/use-hydrogen explain what package.json scripts exist here",
+    "/use-hydrogen model"
   ],
   "author": {
     "name": "Miguel Ángel Durán (midudev) - Adapted for Antigravity",
@@ -16,5 +17,5 @@
   "homepage": "https://github.com/mackrophages/better-antigravity",
   "repository": "https://github.com/mackrophages/better-antigravity",
   "license": "MIT",
-  "keywords": ["flash", "fast", "model", "subagent", "haiku"]
+  "keywords": ["hydrogen", "balanced", "fast", "model", "haiku", "prompt"]
 }

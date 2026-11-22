@@ -4,11 +4,17 @@
 import {
   getPluginConfig,
   isHeadless,
+  isSubcall,
   readStdinJson,
   readState,
   writeState
 } from './lib/store.mjs'
 import { summarizeTranscript } from './lib/transcript.mjs'
+
+if (isSubcall()) {
+  process.stdout.write('{}\n')
+  process.exit(0)
+}
 
 const payload = await readStdinJson()
 if (isHeadless() || !payload.conversationId || !payload.transcriptPath) {

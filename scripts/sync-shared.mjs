@@ -27,7 +27,7 @@ const ICONS = {
   'narrator': `<path d="M28 52h16l20-18v60L44 76H28z" fill="#ececec"/><path d="M76 48c8 8 8 24 0 32M88 36c16 16 16 40 0 56" fill="none" stroke="#d77757" stroke-width="6" stroke-linecap="round"/>`,
   'time-machine': `<circle cx="66" cy="64" r="36" fill="none" stroke="#ececec" stroke-width="6"/><path d="M30 44v20h20" fill="none" stroke="#d77757" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M66 44v22l16 10" fill="none" stroke="#d77757" stroke-width="6" stroke-linecap="round"/>`,
   'after': `<rect x="26" y="32" width="76" height="16" rx="4" fill="#d77757"/><rect x="26" y="56" width="60" height="16" rx="4" fill="#ececec"/><rect x="26" y="80" width="44" height="16" rx="4" fill="#5e5e5e"/>`,
-  'use-flash': `<path d="M72 20L34 68h26l-8 40 42-50H68z" fill="#d77757" stroke="#f2a385" stroke-width="3" stroke-linejoin="round"/>`,
+  'use-hydrogen': `<ellipse cx="64" cy="64" rx="40" ry="18" transform="rotate(-30 64 64)" fill="none" stroke="#ececec" stroke-width="5"/><ellipse cx="64" cy="64" rx="40" ry="18" transform="rotate(30 64 64)" fill="none" stroke="#9b9b9b" stroke-width="4"/><circle cx="64" cy="64" r="12" fill="#d77757"/><circle cx="96" cy="46" r="6" fill="#afd7ff"/>`,
   'think-hard': `<circle cx="64" cy="54" r="24" fill="#d77757"/><rect x="52" y="82" width="24" height="14" rx="4" fill="#ececec"/><path d="M64 18v8M30 54h8M90 54h8M38 30l6 6M90 30l-6 6" stroke="#f2a385" stroke-width="5" stroke-linecap="round"/>`,
   'token-meter': `<path d="M44 92V36m0 0L28 52m16-16l16 16" fill="none" stroke="#afd7ff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M84 36v56m0 0L68 76m16 16l16-16" fill="none" stroke="#87d787" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>`
 }

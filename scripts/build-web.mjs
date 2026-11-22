@@ -59,10 +59,10 @@ const ORDER = [
     demoHtml: `<div class="demo"><p class="line"><span class="p">&gt; </span><span class="accent">/after</span> ejecutar pruebas y actualizar README</p><p class="line"><span class="down">✓</span> Queued #1 · o desde otra terminal: <code>agy-after after "revisar linter"</code></p></div>`
   },
   {
-    id: 'use-flash',
-    title: 'Use Flash',
-    summary: 'Adaptación de Use Haiku para Antigravity: empezar con `_` instruye al turno actual a delegar el trabajo pesado al subagente `flash-runner` (`model: flash`), o usa `agy --agent flash-runner` para correr toda la sesión directo en Flash.',
-    demoHtml: `<div class="demo"><p class="line"><span class="p">&gt; </span><span class="accent">_</span>resume los cambios del último commit</p><p class="line"><span class="up">⚡ Use Flash (_)</span> <span class="dim">· delega en flash-runner (<code>__init__.py</code> se ignora)</span></p></div>`
+    id: 'use-hydrogen',
+    title: 'Use Hydrogen',
+    summary: 'Adaptación de Use Haiku para Antigravity sobre Gemini 4 Hydrogen (`gemini-4-hydrogen-high`, configurable en `low|medium|high|xhigh`): empezar con `_` ejecuta ese turno en Hydrogen verificando el modelo en `transcript.jsonl`, o usa `agy-hydrogen` para abrir sesión directa.',
+    demoHtml: `<div class="demo"><p class="line"><span class="p">&gt; </span><span class="accent">_</span>resume los cambios del último commit</p><p class="line"><span class="up">⚡ Answered by gemini-4-hydrogen-high</span> <span class="dim">(2.4s · ↓ 18 tokens · <code>__init__.py</code> se ignora)</span></p></div>`
   },
   {
     id: 'think-hard',
@@ -349,7 +349,7 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
         Adaptación nativa para <strong>Google Antigravity (<code>agy</code>)</strong> de los 11 plugins y mods de
         <a href="https://betterclaude.dev/" target="_blank" rel="noopener">betterclaude.dev</a>
         (<a href="https://github.com/midudev/better-claude" target="_blank" rel="noopener">midudev/better-claude</a>):
-        hooks de ciclo de vida reales, skills slash, subagentes Flash y barra <code>statusLine</code> unificada.
+        hooks de ciclo de vida reales, skills slash, ejecución equilibrada en Hydrogen y barra <code>statusLine</code> unificada.
       </p>
 
       <section class="install" aria-label="Instalador">
@@ -408,7 +408,7 @@ ${cardsHtml}
   <script>
     (() => {
       const CATALOG = ${catalogJson};
-      const HUD_PLUGINS = new Set(['sub-meter', 'context-meter', 'token-meter', 'narrator', 'time-machine', 'after', 'think-hard', 'use-flash']);
+      const HUD_PLUGINS = new Set(['sub-meter', 'context-meter', 'token-meter', 'narrator', 'time-machine', 'after', 'think-hard', 'use-hydrogen']);
       const GH_REPO = 'https://github.com/mackrophages/better-antigravity/tree/main/plugins';
       const LOCAL_ROOT = '/root/better-antigravity';
 

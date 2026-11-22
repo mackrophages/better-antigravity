@@ -1,6 +1,11 @@
 #!/usr/bin/env node
-import { isHeadless, readStdinJson, updateState } from './lib/store.mjs'
+import { isHeadless, isSubcall, readStdinJson, updateState } from './lib/store.mjs'
 import { cleanUserRequest } from './lib/transcript.mjs'
+
+if (isSubcall()) {
+  process.stdout.write('{}\n')
+  process.exit(0)
+}
 
 const mode = process.argv[2] || 'pre'
 const payload = await readStdinJson()

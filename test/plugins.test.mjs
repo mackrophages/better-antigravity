@@ -176,7 +176,7 @@ describe('After non-steering queue + Stop hook auto-continue', () => {
   })
 })
 
-describe('Narrator, Image Preview, Quick Peek, Think Hard, Use Flash, and Commit', () => {
+describe('Narrator, Image Preview, Quick Peek, Think Hard, Use Hydrogen, and Commit', () => {
   it('cleans markdown for speech, detects Spanish/English, and preserves closing questions', () => {
     const md = 'He corregido el fallo en `src/auth/login.tsx` (commit `9a8b7c6d`). ¿Quieres que corra las pruebas?'
     assert.equal(guessLanguage(md), 'es')
@@ -229,7 +229,7 @@ describe('Narrator, Image Preview, Quick Peek, Think Hard, Use Flash, and Commit
     assert.ok(ex.first <= 15 && ex.first + ex.lines.length > 15)
   })
 
-  it('triggers + Think Hard and _ Use Flash (while ignoring __init__.py) and flags .env in Commit', () => {
+  it('triggers + Think Hard and _ Use Hydrogen (ignoring __init__.py and subcalls), runs Hydrogen CLI, and flags .env in Commit', () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hooks-e2e-'))
     const repo = path.join(tmp, 'repo')
     fs.mkdirSync(repo, { recursive: true })
@@ -241,17 +241,50 @@ describe('Narrator, Image Preview, Quick Peek, Think Hard, Use Flash, and Commit
       }))
       assert.match(th.injectSteps[0].systemMessage.systemMessage, /THINK HARD MODE/)
 
-      const ufSkip = JSON.parse(runNode('plugins/use-flash/scripts/use-flash-hook.mjs', ['pre'], {
+      const uhSkip = JSON.parse(runNode('plugins/use-hydrogen/scripts/use-hydrogen-hook.mjs', ['pre'], {
         env,
         input: JSON.stringify({ conversationId: 'c1', invocationNum: 0, lastUserInput: '__init__.py is failing' })
       }))
-      assert.deepEqual(ufSkip, {})
+      assert.deepEqual(uhSkip, {})
 
-      const ufHit = JSON.parse(runNode('plugins/use-flash/scripts/use-flash-hook.mjs', ['pre'], {
+      const uhSubcall = JSON.parse(runNode('plugins/use-hydrogen/scripts/use-hydrogen-hook.mjs', ['pre'], {
+        env: { ...env, BETTER_AGY_SUBCALL: '1' },
+        input: JSON.stringify({ conversationId: 'c1', invocationNum: 0, lastUserInput: '_summarize README' })
+      }))
+      assert.deepEqual(uhSubcall, {})
+
+      const uhHit = JSON.parse(runNode('plugins/use-hydrogen/scripts/use-hydrogen-hook.mjs', ['pre'], {
         env,
         input: JSON.stringify({ conversationId: 'c1', invocationNum: 0, lastUserInput: '_summarize README' })
       }))
-      assert.match(ufHit.injectSteps[0].systemMessage.systemMessage, /USE FLASH MODE/)
+      assert.match(uhHit.injectSteps[0].systemMessage.systemMessage, /USE HYDROGEN MODE/)
+      assert.match(uhHit.injectSteps[0].systemMessage.systemMessage, /gemini-4-hydrogen-high/)
+
+      const setMed = runNode('plugins/use-hydrogen/scripts/use-hydrogen-cli.mjs', ['model', 'medium'], { env })
+      assert.match(setMed, /gemini-4-hydrogen-medium/)
+      const setHigh = runNode('plugins/use-hydrogen/scripts/use-hydrogen-cli.mjs', ['model', 'high'], { env })
+      assert.match(setHigh, /gemini-4-hydrogen-high/)
+
+      const mockAgy = path.join(tmp, 'mock-agy.mjs')
+      fs.writeFileSync(mockAgy, [
+        '#!/usr/bin/env node',
+        "import fs from 'node:fs'",
+        "import path from 'node:path'",
+        'const args = process.argv.slice(2)',
+        "const mIdx = args.indexOf('--model')",
+        "const model = mIdx >= 0 ? args[mIdx + 1] : 'unknown'",
+        "if (process.env.BETTER_AGY_SUBCALL !== '1') process.exit(2)",
+        "const logDir = path.join(process.env.BETTER_AGY_TEST_HOME, '.gemini', 'antigravity-cli', 'brain', 'mock-h2', '.system_generated', 'logs')",
+        'fs.mkdirSync(logDir, { recursive: true })',
+        "fs.writeFileSync(path.join(logDir, 'transcript.jsonl'), JSON.stringify({ step_index: 1, source: 'MODEL', type: 'PLANNER_RESPONSE', model, input_tokens: 500, output_tokens: 18, content: 'Summary ready' }) + '\\n')",
+        "process.stdout.write(JSON.stringify({ conversation_id: 'mock-h2', status: 'SUCCESS', response: 'Summary ready\\n', duration_seconds: 2.4, num_turns: 1, usage: { input_tokens: 500, output_tokens: 18, total_tokens: 518 } }) + '\\n')"
+      ].join('\n'), { mode: 0o755 })
+
+      const runOut = runNode('plugins/use-hydrogen/scripts/use-hydrogen-cli.mjs', ['run', 'summarize README'], {
+        env: { ...env, BETTER_AGY_BIN: mockAgy }
+      })
+      assert.match(runOut, /Summary ready/)
+      assert.match(runOut, /Answered by gemini-4-hydrogen-high \(2\.4s · ↓ 18 tokens\)/)
 
       spawnSync('git', ['init', '-b', 'main'], { cwd: repo })
       fs.writeFileSync(path.join(repo, '.env.production'), 'API_KEY=123\n')

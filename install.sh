@@ -11,7 +11,7 @@ ALL_PLUGINS=(
   narrator
   time-machine
   after
-  use-flash
+  use-hydrogen
   think-hard
   token-meter
 )
@@ -27,10 +27,10 @@ EOF
 fi
 
 if [[ "${1:-}" == "--uninstall" ]]; then
-  for name in "${ALL_PLUGINS[@]}"; do
+  for name in "${ALL_PLUGINS[@]}" use-flash; do
     agy plugin uninstall "$name" 2>/dev/null || true
   done
-  rm -f "$HOME/.local/bin/agy-after"
+  rm -f "$HOME/.local/bin/agy-after" "$HOME/.local/bin/agy-hydrogen"
   node "$ROOT_DIR/scripts/setup-statusline.mjs" --uninstall
   echo "Uninstalled Better Antigravity plugins and statusLine."
   exit 0
@@ -43,6 +43,11 @@ if [[ $# -eq 0 || "${1:-}" == "--all" ]]; then
   TARGETS=("${ALL_PLUGINS[@]}")
 else
   TARGETS=("$@")
+fi
+
+# Retire legacy use-flash if previously installed
+if [[ -d "$HOME/.gemini/config/plugins/use-flash" ]]; then
+  agy plugin uninstall use-flash >/dev/null 2>&1 || rm -rf "$HOME/.gemini/config/plugins/use-flash"
 fi
 
 NEED_HUD=0
@@ -59,7 +64,7 @@ for name in "${TARGETS[@]}"; do
   fi
   agy plugin install "$plugin_path"
   case "$name" in
-    sub-meter|context-meter|token-meter|narrator|time-machine|after|think-hard|use-flash)
+    sub-meter|context-meter|token-meter|narrator|time-machine|after|think-hard|use-hydrogen)
       NEED_HUD=1
       ;;
   esac
@@ -76,6 +81,16 @@ if [[ -d "$HOME/.gemini/config/plugins/after" ]]; then
 exec node "$HOME/.gemini/config/plugins/after/scripts/after-cli.mjs" --cwd "$PWD" "$@"
 WRAP
   chmod +x "$HOME/.local/bin/agy-after"
+fi
+
+if [[ -d "$HOME/.gemini/config/plugins/use-hydrogen" ]]; then
+  mkdir -p "$HOME/.local/bin"
+  cat > "$HOME/.local/bin/agy-hydrogen" <<'WRAP_H2'
+#!/usr/bin/env bash
+H_MODEL="${AGY_HYDROGEN_MODEL:-$(node "$HOME/.gemini/config/plugins/use-hydrogen/scripts/use-hydrogen-cli.mjs" model --id 2>/dev/null || echo gemini-4-hydrogen-high)}"
+exec agy --model "$H_MODEL" --agent hydrogen-runner "$@"
+WRAP_H2
+  chmod +x "$HOME/.local/bin/agy-hydrogen"
 fi
 
 echo ""
