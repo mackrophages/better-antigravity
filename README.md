@@ -1,0 +1,68 @@
+# Better Antigravity
+
+Adaptación nativa y de código abierto de **[betterclaude.dev](https://betterclaude.dev/)** ([`midudev/better-claude`](https://github.com/midudev/better-claude)) para **Google Antigravity (`agy`)**.
+
+Incluye los **11 plugins completos** (los 7 destacados en la web pública más los 4 adicionales del repositorio oficial), reescritos sobre las superficies nativas de Antigravity: `plugin.json`, `skills/<nombre>/SKILL.md`, `hooks.json` (`SessionStart`, `PreInvocation`, `PostInvocation`, `PreToolUse`, `Stop`), subagentes `flash` y un multiplexor unificado de `statusLine` en Node ESM con **cero dependencias externas** (sin `node_modules`, inmune al fallo de hardlinks bajo Termux/proot).
+
+## Catálogo de los 11 Plugins
+
+| Plugin | Comando / Activación | Qué hace en Antigravity | Carpeta |
+| :--- | :--- | :--- | :--- |
+| **Quick Peek** | `/quick-peek [ruta[:línea]]` | Previsualiza rutas de las respuestas (20 líneas coloreadas centradas en `:línea`, carpetas y metadatos) y las revela en el gestor del sistema (`termux-open`, `Finder`, `Explorer`, `xdg-open`). | [`plugins/quick-peek/`](plugins/quick-peek/README.md) |
+| **Image Preview** | `/image-preview [ruta\|recent]` | Renderiza imágenes, primera página de PDFs (`pdftoppm`) y fotogramas de video (`ffmpeg`) en bloques Unicode truecolor de 24 bits (muestreo 8x8 en luz lineal con `PIL` o lector BMP puro). | [`plugins/image-preview/`](plugins/image-preview/README.md) |
+| **Sub Meter** | Barra `statusLine` + `/sub-meter` | Muestra en vivo las ventanas de cuota (5 horas y semanal) con barra de 10 celdas y cuenta regresiva de reinicio compartida entre terminales. | [`plugins/sub-meter/`](plugins/sub-meter/README.md) |
+| **Context Meter** | Barra `statusLine` + `/context-meter` | Muestra el porcentaje de ventana de contexto usado (gris <50 %, amarillo >=50 % `/compact`, rojo >=75 %) y lanza aviso único al cruzar el umbral crítico sin gastar tokens. | [`plugins/context-meter/`](plugins/context-meter/README.md) |
+| **Commit** | `/commit` | Pregunta con `ask_question` (`Commit + push`, `Commit only` o `Commit on a new branch`), bloquea `.env*` y llaves privadas, y divide cambios en Conventional Commits limpios sin trailers de IA. | [`plugins/commit/`](plugins/commit/README.md) |
+| **Narrator** | `/narrator` + hook `Stop` | Resume en voz alta cada turno terminado en tu idioma (`AVSpeechSynthesizer`, `System.Speech`, `spd-say`/`espeak-ng` o `termux-tts-speak`) con cola compartida entre ventanas. | [`plugins/narrator/`](plugins/narrator/README.md) |
+| **Time Machine** | `/timeline` + hooks Git | Cada turno que edita archivos (incluido Bash) crea un snapshot Git en un índice propio (`.git/time-machine-<sesión>.index`) bajo `refs/time-machine/*` sin tocar `HEAD`, ramas ni staging. | [`plugins/time-machine/`](plugins/time-machine/README.md) |
+| **After** | `/after` y `/before` + `agy-after` | Cola FIFO sin desviar el turno en curso: encola tareas en español o inglés (desde otra terminal con `agy-after after "<tarea>"`) y el hook `Stop` encadena la siguiente con `decision: "continue"`. | [`plugins/after/`](plugins/after/README.md) |
+| **Use Flash** | Prefijo `_` o `agy --agent flash-runner` | Adaptación de *Use Haiku*: iniciar con `_` pide al turno actual delegar el trabajo pesado en `flash-runner` (`model: flash`), o usa `agy --agent flash-runner` para correr toda la sesión directo en Flash. | [`plugins/use-flash/`](plugins/use-flash/README.md) |
+| **Think Hard** | Prefijo `+` o `/think-hard` | Iniciar un prompt con `+` activa rigor analítico máximo (`+MAX` en `statusLine`) únicamente durante ese turno. | [`plugins/think-hard/`](plugins/think-hard/README.md) |
+| **Token Meter** | Barra `statusLine` + `/token-meter` | Muestra los tokens de entrada (`↑`), salida (`↓`) y caché del turno junto al acumulado de la sesión. | [`plugins/token-meter/`](plugins/token-meter/README.md) |
+
+## Instalación en Antigravity
+
+### Opción 1: Prompt de instalación de un solo paso (como en `betterclaude.dev`)
+
+Abre [`web/index.html`](web/index.html) para elegir los plugins y copiar el prompt, o pega directamente en Antigravity (`agy`):
+
+```text
+Instala o actualiza de forma idempotente estos plugins adaptados para Google Antigravity desde /root/better-antigravity ejecutando:
+
+bash /root/better-antigravity/install.sh --all
+agy plugin list
+
+Después avísame que abra una nueva sesión de agy para cargar los skills, hooks y la barra statusLine.
+```
+
+### Opción 2: Script directo desde terminal
+
+```bash
+# Instalar los 11 plugins + configurar statusLine (con respaldo automático de settings.json)
+bash /root/better-antigravity/install.sh --all
+
+# Instalar solo algunos
+bash /root/better-antigravity/install.sh commit time-machine context-meter sub-meter
+
+# Desinstalar todos
+bash /root/better-antigravity/install.sh --uninstall
+```
+
+### Opción 3: Desde GitHub (una vez publicado el repositorio)
+
+```bash
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/time-machine
+```
+
+## Desarrollo y Verificación
+
+```bash
+node scripts/sync-shared.mjs   # Sincroniza librerías e íconos SVG en los 11 plugins
+node scripts/validate-all.mjs  # Corre agy plugin validate --strict en los 11 plugins
+node scripts/build-web.mjs     # Regenera web/index.html 100 % autocontenido
+node --test "test/*.test.mjs"  # Ejecuta la suite de pruebas automatizadas
+```
+
+## Créditos y Licencia
+
+Licencia MIT. Concepto original, diseño de referencia y algoritmos base de [`midudev/better-claude`](https://github.com/midudev/better-claude) por **Miguel Ángel Durán (@midudev)** y **DiegoMarty** (`time-machine`). Adaptación nativa para Google Antigravity documentada en [`docs/a3-better-antigravity.md`](docs/a3-better-antigravity.md).
