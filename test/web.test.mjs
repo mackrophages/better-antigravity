@@ -31,6 +31,8 @@ describe('web/index.html offline deliverable contract', () => {
       assert.ok(html.includes(`data-plugin="${id}"`), `Missing picker button for ${id}`)
     }
     assert.equal(html.includes('use-flash'), false, 'Legacy use-flash should not appear in web catalog')
+    assert.equal(html.toLowerCase().includes('#d77757'), false, 'Claude terracotta color must not appear in Antigravity theme')
+    assert.match(html, /#3186ff/i, 'Antigravity electric blue brand accent must be present')
     assert.ok(html.includes('&lt;tarea&gt;'), 'Angle brackets inside code spans must be HTML-escaped')
     assert.equal(html.includes('<code>/after <tarea>'), false, 'No unescaped <tarea> tag allowed')
     assert.match(html, /install\.sh /)

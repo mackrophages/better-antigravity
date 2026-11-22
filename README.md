@@ -4,6 +4,8 @@
 
 Adaptación nativa y de código abierto de **[betterclaude.dev](https://betterclaude.dev/)** ([`midudev/better-claude`](https://github.com/midudev/better-claude)) para **Google Antigravity (`agy`)**.
 
+🌐 **Página web interactiva (GitHub Pages):** **[https://mackrophages.github.io/better-antigravity/](https://mackrophages.github.io/better-antigravity/)**
+
 Incluye los **11 plugins completos** (los 7 destacados en la web pública más los 4 adicionales del repositorio oficial), reescritos sobre las superficies nativas de Antigravity: `plugin.json`, `skills/<nombre>/SKILL.md`, `hooks.json` (`SessionStart`, `PreInvocation`, `PostInvocation`, `PreToolUse`, `Stop`), ejecución equilibrada sobre **Gemini 4 Hydrogen** y un multiplexor unificado de `statusLine` en Node ESM con **cero dependencias externas** (sin `node_modules`, inmune al fallo de hardlinks bajo Termux/proot).
 
 ## Catálogo de los 11 Plugins
