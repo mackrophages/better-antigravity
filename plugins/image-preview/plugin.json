@@ -1,0 +1,20 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "image-preview",
+  "displayName": "Image Preview",
+  "version": "1.0.0",
+  "description": "Renders crisp 24-bit truecolor Unicode subpixel previews of images, PDFs, and video frames right in the terminal or opens them in your viewer.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "/image-preview recent",
+    "/image-preview assets/logo.svg"
+  ],
+  "author": {
+    "name": "Miguel Ángel Durán (midudev) - Adapted for Antigravity",
+    "url": "https://github.com/midudev/better-claude"
+  },
+  "homepage": "https://github.com/mackrophages/better-antigravity",
+  "repository": "https://github.com/mackrophages/better-antigravity",
+  "license": "MIT",
+  "keywords": ["image", "preview", "terminal", "truecolor", "media"]
+}

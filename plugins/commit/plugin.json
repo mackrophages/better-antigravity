@@ -1,0 +1,21 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "commit",
+  "displayName": "Commit",
+  "version": "1.0.0",
+  "description": "/commit asks whether to commit + push, commit only, or create a new branch, then splits your changes into clean Conventional Commits.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "/commit",
+    "/commit language repo",
+    "/commit language Spanish"
+  ],
+  "author": {
+    "name": "Miguel Ángel Durán (midudev) - Adapted for Antigravity",
+    "url": "https://github.com/midudev/better-claude"
+  },
+  "homepage": "https://github.com/mackrophages/better-antigravity",
+  "repository": "https://github.com/mackrophages/better-antigravity",
+  "license": "MIT",
+  "keywords": ["git", "commit", "conventional-commits", "workflow"]
+}

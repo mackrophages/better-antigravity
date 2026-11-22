@@ -1,0 +1,21 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "sub-meter",
+  "displayName": "Sub Meter",
+  "version": "1.0.0",
+  "description": "Displays live model quota windows (5-hour and weekly) with reset countdowns in the Antigravity CLI status line.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "/sub-meter status",
+    "/sub-meter mode both",
+    "/sub-meter mode rotate"
+  ],
+  "author": {
+    "name": "Miguel Ángel Durán (midudev) - Adapted for Antigravity",
+    "url": "https://github.com/midudev/better-claude"
+  },
+  "homepage": "https://github.com/mackrophages/better-antigravity",
+  "repository": "https://github.com/mackrophages/better-antigravity",
+  "license": "MIT",
+  "keywords": ["quota", "usage", "statusline", "meter", "productivity"]
+}

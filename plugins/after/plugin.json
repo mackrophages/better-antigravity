@@ -1,0 +1,21 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "after",
+  "displayName": "After",
+  "version": "1.0.0",
+  "description": "A non-steering prompt queue for Antigravity: /after <task> and /before <task> run queued tasks automatically when the current turn ends.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "/after list",
+    "/after pause",
+    "/after help"
+  ],
+  "author": {
+    "name": "Miguel Ángel Durán (midudev) - Adapted for Antigravity",
+    "url": "https://github.com/midudev/better-claude"
+  },
+  "homepage": "https://github.com/mackrophages/better-antigravity",
+  "repository": "https://github.com/mackrophages/better-antigravity",
+  "license": "MIT",
+  "keywords": ["queue", "prompts", "workflow", "productivity", "after"]
+}

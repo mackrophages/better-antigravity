@@ -1,0 +1,21 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "narrator",
+  "displayName": "Narrator",
+  "version": "1.0.0",
+  "description": "Reads out loud a concise first-person summary of what Antigravity did after each turn in your language, using your system's free voices.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "/narrator",
+    "/narrator voices",
+    "/narrator test"
+  ],
+  "author": {
+    "name": "Miguel Ángel Durán (midudev) - Adapted for Antigravity",
+    "url": "https://github.com/midudev/better-claude"
+  },
+  "homepage": "https://github.com/mackrophages/better-antigravity",
+  "repository": "https://github.com/mackrophages/better-antigravity",
+  "license": "MIT",
+  "keywords": ["tts", "voice", "speech", "narrator", "accessibility"]
+}

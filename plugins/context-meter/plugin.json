@@ -1,0 +1,21 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "context-meter",
+  "displayName": "Context Meter",
+  "version": "1.0.0",
+  "description": "Tracks session context window fill in the CLI status line and alerts when it is time to run /compact or start a new session.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "/context-meter status",
+    "/context-meter warn 50",
+    "/context-meter danger 75"
+  ],
+  "author": {
+    "name": "Miguel Ángel Durán (midudev) - Adapted for Antigravity",
+    "url": "https://github.com/midudev/better-claude"
+  },
+  "homepage": "https://github.com/mackrophages/better-antigravity",
+  "repository": "https://github.com/mackrophages/better-antigravity",
+  "license": "MIT",
+  "keywords": ["context", "tokens", "compact", "statusline", "productivity"]
+}

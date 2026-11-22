@@ -1,0 +1,11 @@
+{
+  "quick-peek-hooks": {
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "node ./scripts/peek-hook.mjs",
+        "timeout": 10
+      }
+    ]
+  }
+}

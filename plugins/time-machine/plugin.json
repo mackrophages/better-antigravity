@@ -1,0 +1,21 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "time-machine",
+  "displayName": "Time Machine",
+  "version": "1.0.0",
+  "description": "Every turn that changes files becomes an isolated git snapshot: /timeline rewinds or redoes working tree changes, Bash edits included.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "/timeline",
+    "/timeline undo",
+    "/timeline redo"
+  ],
+  "author": {
+    "name": "DiegoMarty & midudev - Adapted for Antigravity",
+    "url": "https://github.com/midudev/better-claude"
+  },
+  "homepage": "https://github.com/mackrophages/better-antigravity",
+  "repository": "https://github.com/mackrophages/better-antigravity",
+  "license": "MIT",
+  "keywords": ["git", "undo", "checkpoint", "rewind", "snapshot", "timeline"]
+}

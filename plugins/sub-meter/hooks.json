@@ -1,0 +1,11 @@
+{
+  "sub-meter-hud": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "node ./scripts/lib/ensure-hud.mjs",
+        "timeout": 10
+      }
+    ]
+  }
+}

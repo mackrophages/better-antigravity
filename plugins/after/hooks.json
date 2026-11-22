@@ -1,0 +1,25 @@
+{
+  "after-queue-hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "node ./scripts/after-hook.mjs session-start",
+        "timeout": 10
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node ./scripts/after-hook.mjs pre-invocation",
+        "timeout": 10
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node ./scripts/after-hook.mjs stop",
+        "timeout": 15
+      }
+    ]
+  }
+}

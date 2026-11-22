@@ -1,0 +1,20 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "think-hard",
+  "displayName": "Think Hard",
+  "version": "1.0.0",
+  "description": "Start any prompt with + to activate maximum deep-reasoning rigor for that single turn without changing your session default.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "+plan the architecture refactor and verify all edge cases",
+    "/think-hard audit this module for concurrency bugs"
+  ],
+  "author": {
+    "name": "Miguel Ángel Durán (midudev) - Adapted for Antigravity",
+    "url": "https://github.com/midudev/better-claude"
+  },
+  "homepage": "https://github.com/mackrophages/better-antigravity",
+  "repository": "https://github.com/mackrophages/better-antigravity",
+  "license": "MIT",
+  "keywords": ["effort", "thinking", "reasoning", "prompt"]
+}

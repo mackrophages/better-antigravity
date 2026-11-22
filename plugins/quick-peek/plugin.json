@@ -1,0 +1,21 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "quick-peek",
+  "displayName": "Quick Peek",
+  "version": "1.0.0",
+  "description": "Previews file paths from Antigravity's replies (syntax-highlighted code around :line, video frames, PDFs, images, and folders) and reveals them in your file manager.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "/quick-peek",
+    "/quick-peek package.json:1",
+    "/quick-peek auto on"
+  ],
+  "author": {
+    "name": "Miguel Ángel Durán (midudev) - Adapted for Antigravity",
+    "url": "https://github.com/midudev/better-claude"
+  },
+  "homepage": "https://github.com/mackrophages/better-antigravity",
+  "repository": "https://github.com/mackrophages/better-antigravity",
+  "license": "MIT",
+  "keywords": ["paths", "preview", "code", "links", "finder", "productivity"]
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "token-meter",
+  "displayName": "Token Meter",
+  "version": "1.0.0",
+  "description": "Shows each turn's input, output, and cached tokens plus the session running total in color in the CLI status line.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "/token-meter status",
+    "/token-meter history"
+  ],
+  "author": {
+    "name": "Miguel Ángel Durán (midudev) - Adapted for Antigravity",
+    "url": "https://github.com/midudev/better-claude"
+  },
+  "homepage": "https://github.com/mackrophages/better-antigravity",
+  "repository": "https://github.com/mackrophages/better-antigravity",
+  "license": "MIT",
+  "keywords": ["tokens", "usage", "cache", "statusline", "productivity"]
+}
