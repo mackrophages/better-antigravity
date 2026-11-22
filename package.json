@@ -1,0 +1,22 @@
+{
+  "name": "better-antigravity",
+  "version": "1.0.0",
+  "description": "Free, open-source plugins and HUD mods adapted for Google Antigravity (agy) from midudev/better-claude: Quick Peek, Image Preview, Sub Meter, Context Meter, Commit, Narrator, Time Machine, After, Use Flash, Think Hard, and Token Meter.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Adapted for Google Antigravity from midudev/better-claude",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mackrophages/better-antigravity.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "sync": "node scripts/sync-shared.mjs",
+    "test": "node --test \"test/*.test.mjs\"",
+    "validate": "node scripts/validate-all.mjs",
+    "install:all": "bash install.sh --all",
+    "uninstall:all": "bash install.sh --uninstall"
+  }
+}
