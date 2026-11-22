@@ -1,0 +1,8 @@
+# Evidencia medida en Gemba al cierre de better-antigravity (2026-11-22)
+1. Validacion estricta: node scripts/validate-all.mjs -> 11 de 11 plugins pasan `agy plugin validate --strict` (0 errores, 0 avisos)
+2. Instalacion real: `agy plugin list` muestra los 11 plugins habilitados (after, commit, context-meter, image-preview, narrator, quick-peek, sub-meter, think-hard, time-machine, token-meter, use-flash) junto a agent-skills, egm y tas intactos
+3. Subagentes descubiertos: `agy agents` lista `flash-runner` y `commit` incluye `commit-splitter`
+4. Latencia medida de `better-statusline.mjs` en proot ARM64: mediana 109.2 ms en 5 corridas [101.5, 110.9, 109.2, 123.8, 101.2]
+5. Suite automatizada: `node --test test/*.test.mjs` -> 14/14 pruebas en verde en 7 suites (Time Machine Git e2e, After FIFO Stop hook, Narrator ES/EN, Image Preview BMP/PIL, Quick Peek paths/excerpts, Think Hard/Use Flash/Commit, Web offline contract)
+6. Compuerta determinista: `chequeo-gemba.sh /root/better-antigravity` -> 21 archivos JSON validados, 0 mojibake, 0 errores, 0 avisos, 0 guiones largos (U+2014)
+7. Web autocontenida: `/root/better-antigravity/web/index.html` (231.4 KB, `<meta charset="utf-8">` en linea 1, 0 scripts/estilos externos) copiada tambien a `/sdcard/Download/better-antigravity.html`

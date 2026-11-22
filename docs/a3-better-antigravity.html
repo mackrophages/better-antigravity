@@ -1,0 +1,800 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A3: plugins de better-claude operativos en Antigravity: de 0 de 11 a 11 de 11</title>
+<style>:root {
+  --fondo: #ffffff;
+  --fondo-suave: #f8f9fa;
+  --texto: #202124;
+  --sec: #5f6368;
+  --borde: #dadce0;
+  --ok: #137333;
+  --ok-suave: #e6f4ea;
+  --aviso: #b06000;
+  --aviso-suave: #fef7e0;
+  --error: #c5221f;
+  --error-suave: #fce8e6;
+  --info: #1a73e8;
+  --info-suave: #e8f0fe;
+  --color-primary: #1a73e8;
+  --color-primary-active: #1557b0;
+  --color-primary-disabled: #aecbfa;
+  --color-ink: #202124;
+  --color-body: #202124;
+  --color-body-strong: #202124;
+  --color-muted: #5f6368;
+  --color-muted-soft: #80868b;
+  --color-hairline: #e8eaed;
+  --color-hairline-strong: #dadce0;
+  --color-canvas: #ffffff;
+  --color-surface-soft: #f8f9fa;
+  --color-surface-card: #ffffff;
+  --color-surface-elevated: #f1f3f4;
+  --color-surface-yellow-band: #fef7e0;
+  --color-on-primary: #ffffff;
+  --color-on-dark: #ffffff;
+  --color-on-yellow: #202124;
+  --color-accent-emerald: #137333;
+  --color-accent-rose: #c5221f;
+  --color-accent-blue: #1a73e8;
+  --color-success: #137333;
+  --color-warning: #b06000;
+  --color-error: #c5221f;
+  --font-primary: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'DejaVu Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'DejaVu Sans Mono', monospace;
+  --type-display-sm-size: 24px;
+  --type-display-sm-lh: 1.2;
+  --type-display-sm-ls: -0.4px;
+  --type-title-lg-size: 17px;
+  --type-title-lg-lh: 1.2;
+  --type-title-lg-ls: -0.2px;
+  --type-title-md-size: 14.5px;
+  --type-title-md-lh: 1.3;
+  --type-title-sm-size: 13px;
+  --type-title-sm-lh: 1.3;
+  --type-body-md-size: 12px;
+  --type-body-md-lh: 1.28;
+  --type-body-sm-size: 11.5px;
+  --type-body-sm-lh: 1.28;
+  --type-caption-size: 10.5px;
+  --type-caption-lh: 1.24;
+  --type-caption-up-size: 10.5px;
+  --type-caption-up-lh: 1.25;
+  --type-caption-up-ls: 0.6px;
+  --type-code-size: 11.5px;
+  --type-code-lh: 1.32;
+  --spacing-xxs: 2px;
+  --spacing-xs: 5px;
+  --spacing-sm: 7px;
+  --spacing-md: 10px;
+  --spacing-lg: 12px;
+  --spacing-xl: 16px;
+  --spacing-xxl: 24px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-pill: 9999px;
+  --layout-max-width: 1240px;
+}
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--fondo);
+  color: var(--texto);
+  font-family: var(--font-primary);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-lh);
+  -webkit-text-size-adjust: 100%;
+}
+.a3-page {
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.a3-header {
+  background-color: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-lg);
+  padding: 6px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.a3-header-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+.kicker {
+  font-size: var(--type-caption-up-size);
+  line-height: var(--type-caption-up-lh);
+  letter-spacing: var(--type-caption-up-ls);
+  text-transform: uppercase;
+  color: var(--sec);
+  font-weight: 700;
+}
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  padding: 2px 9px;
+  font-size: var(--type-caption-up-size);
+  line-height: var(--type-caption-up-lh);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.badge-yellow {
+  background-color: var(--ok-suave);
+  color: var(--ok);
+  border: 1px solid #a8dab5;
+}
+.badge-dark {
+  background-color: var(--color-surface-elevated);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+  letter-spacing: 0.2px;
+  text-transform: none;
+  font-size: var(--type-caption-size);
+  font-weight: 500;
+}
+.badge-success {
+  background-color: var(--ok-suave);
+  color: var(--ok);
+  border: 1px solid #a8dab5;
+}
+.badge-warning {
+  background-color: var(--aviso-suave);
+  color: var(--aviso);
+  border: 1px solid #f6c478;
+}
+.badge-muted {
+  background-color: var(--color-surface-elevated);
+  color: var(--sec);
+  border: 1px solid var(--borde);
+}
+.a3-title {
+  margin: 0;
+  color: var(--texto);
+  font-size: var(--type-title-lg-size);
+  line-height: var(--type-title-lg-lh);
+  letter-spacing: var(--type-title-lg-ls);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.meta-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+.meta-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  background-color: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-pill);
+  padding: 2px 9px;
+  min-width: 0;
+  max-width: 100%;
+}
+.meta-label {
+  font-size: 11px;
+  color: var(--sec);
+  font-weight: 600;
+}
+.meta-label::after {
+  content: ":";
+}
+.meta-value {
+  color: var(--texto);
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.objective-banner {
+  background-color: var(--fondo-suave);
+  border-left: 3px solid var(--ok);
+  border-radius: var(--radius-xs);
+  padding: 4px 8px;
+  color: var(--texto);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.stage-bar-wrap {
+  background-color: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-md);
+  padding: 4px 6px;
+}
+.a3-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  align-items: start;
+}
+.a3-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .a3-page {
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+  .a3-title {
+    font-size: var(--type-display-sm-size);
+    line-height: var(--type-display-sm-lh);
+    letter-spacing: var(--type-display-sm-ls);
+  }
+  .a3-columns {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--spacing-md);
+  }
+}
+.section-card {
+  background-color: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-lg);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.section-card-pending {
+  background-color: var(--fondo-suave);
+  border-style: dashed;
+  border-color: var(--borde);
+}
+.section-card-next {
+  border-color: var(--info);
+  background-color: var(--fondo);
+}
+.section-title {
+  margin: 0;
+  color: var(--texto);
+  font-size: var(--type-title-md-size);
+  line-height: var(--type-title-md-lh);
+  font-weight: 700;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-hairline);
+}
+.subsection-title {
+  margin: 4px 0 0 0;
+  color: var(--texto);
+  font-size: var(--type-title-sm-size);
+  line-height: var(--type-title-sm-lh);
+  font-weight: 700;
+}
+.brecha-bloque {
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  background-color: var(--fondo-suave);
+}
+.brecha-titulo {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sec);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.brecha-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  align-items: center;
+  margin: 2px 0 4px;
+}
+.brecha-fila-lbl {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sec);
+  font-weight: 700;
+}
+.cuadros-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.cuad {
+  display: inline-block;
+  width: 34px;
+  height: 22px;
+  border-radius: 5px;
+  flex: 0 0 auto;
+}
+.cuad.compacto {
+  width: 20px;
+  height: 17px;
+  border-radius: 4px;
+}
+.cuad.mini {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+}
+.cuad.lleno {
+  background-color: var(--ok);
+}
+.cuad.neutro {
+  background-color: var(--fondo);
+  border: 1.5px solid var(--borde);
+}
+.cuad.base {
+  background-color: #9aa0a6;
+}
+.cuad.brecha {
+  background-color: var(--error-suave);
+  border: 2px dashed var(--error);
+}
+.cuad.brecha-sobra {
+  background-color: var(--error);
+}
+.brecha-val {
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 4px;
+  overflow-wrap: anywhere;
+}
+.brecha-barras {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  align-items: center;
+  margin: 2px 0 4px;
+}
+.barra-pista {
+  width: 100%;
+  height: 13px;
+  background-color: #e8eaed;
+  border-radius: 9999px;
+  overflow: hidden;
+  display: flex;
+}
+.barra-ok {
+  height: 100%;
+  background-color: var(--ok);
+}
+.barra-base {
+  height: 100%;
+  background-color: #9aa0a6;
+}
+.barra-brecha {
+  height: 100%;
+  background-color: var(--error);
+}
+.barra-brecha.barra-falta {
+  background-color: var(--error-suave);
+  border: 1.5px dashed var(--error);
+}
+.brecha-gap {
+  font-size: 12px;
+  color: var(--error);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.brecha-callout {
+  background-color: var(--aviso-suave);
+  border: 1px solid #f6c478;
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  color: var(--texto);
+}
+.brecha-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--aviso);
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.brecha-text {
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-lh);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.leyenda-estallidos {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--sec);
+}
+.leyenda-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.mini-estallido {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+.pending-notice {
+  margin: 0;
+  color: var(--sec);
+  font-size: var(--type-body-sm-size);
+  font-style: italic;
+}
+.diagram-box {
+  background-color: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  width: 100%;
+  overflow: hidden;
+}
+svg {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+p {
+  margin: 0;
+  color: var(--texto);
+  overflow-wrap: anywhere;
+}
+ul, ol {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+li {
+  color: var(--texto);
+  overflow-wrap: anywhere;
+}
+li > ul, li > ol {
+  margin-top: 2px;
+}
+strong {
+  color: var(--texto);
+  font-weight: 700;
+}
+code {
+  font-family: var(--font-mono);
+  font-size: var(--type-code-size);
+  line-height: var(--type-code-lh);
+  background-color: var(--color-surface-elevated);
+  color: var(--texto);
+  border: 1px solid var(--color-hairline);
+  padding: 0 4px;
+  border-radius: var(--radius-xs);
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+.cadenas-4b {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cadena-bloque {
+  border-left: 3px solid var(--aviso);
+  background-color: var(--fondo-suave);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cadena {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--texto);
+  overflow-wrap: anywhere;
+}
+.cadena-conclusion {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--sec);
+  overflow-wrap: anywhere;
+}
+.por-lo-tanto {
+  color: var(--ok);
+  font-weight: 700;
+}
+.no-apply-note {
+  background-color: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-md);
+  padding: 5px 8px;
+  color: var(--texto);
+  font-size: 12px;
+}
+details.mapa-detalles {
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  background-color: var(--fondo-suave);
+  font-size: 12px;
+}
+details.mapa-detalles > summary {
+  cursor: pointer;
+  color: var(--sec);
+  font-weight: 600;
+}
+details.mapa-detalles[open] > summary {
+  margin-bottom: 6px;
+}
+.notas {
+  background-color: var(--fondo-suave);
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-lg);
+  padding: 6px 10px;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--sec);
+}
+.notas-titulo {
+  margin: 0 0 3px 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sec);
+  font-weight: 700;
+}
+.notas ol {
+  margin: 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.notas li {
+  color: var(--sec);
+}
+a.nota-ref {
+  color: var(--info);
+  text-decoration: none;
+  font-weight: 700;
+  margin-left: 2px;
+}
+.table-wrap {
+  width: 100%;
+  overflow-x: visible;
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-md);
+  background-color: var(--fondo);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-lh);
+  table-layout: auto;
+}
+th, td {
+  padding: 3px 4px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-hairline);
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+td code, th code {
+  overflow-wrap: anywhere;
+}
+td .badge-pill {
+  white-space: nowrap;
+  font-size: 9.5px;
+  padding: 1px 6px;
+}
+th {
+  background-color: var(--color-surface-elevated);
+  color: var(--texto);
+  font-size: 9.5px;
+  line-height: 1.2;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  font-weight: 700;
+  white-space: normal;
+  overflow-wrap: normal;
+}
+tr:last-child td {
+  border-bottom: none;
+}
+.table-pick {
+  overflow-x: visible;
+}
+.table-pick table, .table-pick tbody {
+  display: block;
+  width: 100%;
+}
+.table-pick thead {
+  display: none;
+}
+.table-pick tr {
+  display: grid;
+  grid-template-columns: 0.9fr 1fr 1.25fr;
+  gap: 1px 5px;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--borde);
+}
+.table-pick tr:last-child {
+  border-bottom: none;
+}
+.table-pick td {
+  display: block;
+  padding: 0;
+  border-bottom: none;
+  min-width: 0;
+}
+.table-pick td:first-child,
+.table-pick td:last-child {
+  grid-column: 1 / -1;
+}
+.table-pick td:first-child {
+  color: var(--texto);
+  font-weight: 700;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--color-hairline);
+}
+.table-pick td:last-child {
+  padding-top: 2px;
+  border-top: 1px dashed var(--color-hairline);
+}
+.table-pick td::before {
+  content: attr(data-label) ": ";
+  display: inline;
+  font-size: 9.5px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--sec);
+  font-weight: 700;
+}
+.table-pick td:first-child::before {
+  content: "";
+}
+@media (max-width: 680px) {
+  .a3-page {
+    padding: 6px;
+    gap: 6px;
+  }
+  .a3-header, .section-card {
+    padding: 7px 9px;
+    gap: 4px;
+  }
+  .diagram-box {
+    padding: 3px;
+  }
+  .table-wrap {
+    overflow-x: visible;
+  }
+  .table-wrap table.cols-many, .table-wrap table.cols-many tbody {
+    display: block;
+    width: 100%;
+  }
+  .table-wrap table.cols-many thead {
+    display: none;
+  }
+  .table-wrap:not(.table-pick) table.cols-many tr {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 5px 7px;
+    border-bottom: 1px solid var(--borde);
+  }
+  .table-wrap:not(.table-pick) table.cols-many tr:last-child {
+    border-bottom: none;
+  }
+  .table-wrap:not(.table-pick) table.cols-many td {
+    display: block;
+    padding: 0;
+    border-bottom: none;
+    min-width: 0;
+  }
+  .table-wrap:not(.table-pick) table.cols-many td:first-child {
+    color: var(--texto);
+    font-weight: 600;
+  }
+  .table-wrap:not(.table-pick) table.cols-many td::before {
+    content: attr(data-label) ": ";
+    display: inline;
+    font-size: 9.5px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: var(--sec);
+    font-weight: 700;
+  }
+}
+.dibujo {
+  container-type: inline-size;
+}
+.dibujo > svg {
+  margin: 0 auto;
+}
+.dibujo > [data-variante="angosta"] {
+  max-width: 380px;
+}
+.dibujo > [data-variante="ancha"] {
+  display: none;
+  max-width: 600px;
+}
+.dibujo-etapas > [data-variante="ancha"] {
+  max-width: 760px;
+}
+@container (min-width: 480px) {
+  .dibujo:not(.dibujo-etapas) > [data-variante="angosta"] {
+    display: none;
+  }
+  .dibujo:not(.dibujo-etapas) > [data-variante="ancha"] {
+    display: block;
+  }
+}
+@container (min-width: 660px) {
+  .dibujo-etapas > [data-variante="angosta"] {
+    display: none;
+  }
+  .dibujo-etapas > [data-variante="ancha"] {
+    display: block;
+  }
+}</style>
+</head>
+<body>
+<main class="a3-page">
+<header class="a3-header">
+<div class="a3-header-top">
+<span class="kicker">Reporte A3 · Pensamiento Lean</span>
+<span class="badge-pill badge-yellow">Etapa: cerrar</span>
+</div>
+<h1 class="a3-title">A3: plugins de better-claude operativos en Antigravity: de 0 de 11 a 11 de 11</h1>
+<div class="meta-grid"><div class="meta-item"><span class="meta-label">Propietario</span><span class="meta-value">Antigravity (agente constructor)</span></div><div class="meta-item"><span class="meta-label">Coach / Revisor</span><span class="meta-value">lector-primera-visita y auditor-gemba (Ojos Frescos)</span></div><div class="meta-item"><span class="meta-label">Versión</span><span class="meta-value">3 (2026-11-22)</span></div><div class="meta-item"><span class="meta-label">Etapa</span><span class="meta-value">cerrar</span></div></div>
+<div class="objective-banner"><strong>Objetivo que apoya:</strong> adaptar betterclaude.dev y midudev/better-claude para Google Antigravity</div>
+<div class="stage-bar-wrap dibujo dibujo-etapas"><svg class="svg-etapas" viewBox="0 0 320 136" data-variante="angosta" role="img" aria-label="Indicador de etapa del A3: cerrar"><line x1="20" y1="16" x2="20" y2="42" stroke="#137333" stroke-width="2"/><line x1="20" y1="42" x2="20" y2="68" stroke="#137333" stroke-width="2"/><line x1="20" y1="68" x2="20" y2="94" stroke="#137333" stroke-width="2"/><line x1="20" y1="94" x2="20" y2="120" stroke="#137333" stroke-width="2"/><g data-etapa="comprender" data-etapa-estado="completada"><circle cx="20" cy="16" r="5" fill="#e6f4ea" stroke="#137333" stroke-width="1.8"/><circle cx="20" cy="16" r="2" fill="#137333"/><text x="33" y="20" fill="#137333" font-size="12.5" font-weight="700">✓ Comprender</text><text x="304" y="20" text-anchor="end" fill="#5f6368" font-size="12" font-weight="500">Secc. 1-2</text></g><g data-etapa="analizar" data-etapa-estado="completada"><circle cx="20" cy="42" r="5" fill="#e6f4ea" stroke="#137333" stroke-width="1.8"/><circle cx="20" cy="42" r="2" fill="#137333"/><text x="33" y="46" fill="#137333" font-size="12.5" font-weight="700">✓ Analizar</text><text x="304" y="46" text-anchor="end" fill="#5f6368" font-size="12" font-weight="500">Secc. 3-4</text></g><g data-etapa="proponer" data-etapa-estado="completada"><circle cx="20" cy="68" r="5" fill="#e6f4ea" stroke="#137333" stroke-width="1.8"/><circle cx="20" cy="68" r="2" fill="#137333"/><text x="33" y="72" fill="#137333" font-size="12.5" font-weight="700">✓ Proponer</text><text x="304" y="72" text-anchor="end" fill="#5f6368" font-size="12" font-weight="500">Secc. 5</text></g><g data-etapa="planear" data-etapa-estado="completada"><circle cx="20" cy="94" r="5" fill="#e6f4ea" stroke="#137333" stroke-width="1.8"/><circle cx="20" cy="94" r="2" fill="#137333"/><text x="33" y="98" fill="#137333" font-size="12.5" font-weight="700">✓ Planear</text><text x="304" y="98" text-anchor="end" fill="#5f6368" font-size="12" font-weight="500">Secc. 6</text></g><g data-etapa="cerrar" data-etapa-estado="actual"><rect x="6" y="108" width="308" height="24" rx="6" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/><circle cx="20" cy="120" r="4.5" fill="#1a73e8"/><text x="33" y="124" fill="#202124" font-size="12.5" font-weight="700">5. Cerrar</text><text x="304" y="124" text-anchor="end" fill="#1a73e8" font-size="12" font-weight="700">Activa · Secc. 7</text></g></svg><svg class="svg-etapas" viewBox="0 0 660 56" data-variante="ancha" role="img" aria-label="Indicador de etapa del A3: cerrar"><line x1="130" y1="28" x2="137" y2="28" stroke="#137333" stroke-width="2"/><line x1="261" y1="28" x2="268" y2="28" stroke="#137333" stroke-width="2"/><line x1="392" y1="28" x2="399" y2="28" stroke="#137333" stroke-width="2"/><line x1="523" y1="28" x2="530" y2="28" stroke="#137333" stroke-width="2"/><g data-etapa="comprender" data-etapa-estado="completada"><rect x="6" y="6" width="124" height="44" rx="8" fill="#e6f4ea" stroke="#137333" stroke-width="1.5"/><text x="68" y="24" text-anchor="middle" fill="#137333" font-size="12" font-weight="700">✓ Comprender</text><text x="68" y="40" text-anchor="middle" fill="#5f6368" font-size="11" font-weight="500">Secc. 1-2</text></g><g data-etapa="analizar" data-etapa-estado="completada"><rect x="137" y="6" width="124" height="44" rx="8" fill="#e6f4ea" stroke="#137333" stroke-width="1.5"/><text x="199" y="24" text-anchor="middle" fill="#137333" font-size="12" font-weight="700">✓ Analizar</text><text x="199" y="40" text-anchor="middle" fill="#5f6368" font-size="11" font-weight="500">Secc. 3-4</text></g><g data-etapa="proponer" data-etapa-estado="completada"><rect x="268" y="6" width="124" height="44" rx="8" fill="#e6f4ea" stroke="#137333" stroke-width="1.5"/><text x="330" y="24" text-anchor="middle" fill="#137333" font-size="12" font-weight="700">✓ Proponer</text><text x="330" y="40" text-anchor="middle" fill="#5f6368" font-size="11" font-weight="500">Secc. 5</text></g><g data-etapa="planear" data-etapa-estado="completada"><rect x="399" y="6" width="124" height="44" rx="8" fill="#e6f4ea" stroke="#137333" stroke-width="1.5"/><text x="461" y="24" text-anchor="middle" fill="#137333" font-size="12" font-weight="700">✓ Planear</text><text x="461" y="40" text-anchor="middle" fill="#5f6368" font-size="11" font-weight="500">Secc. 6</text></g><g data-etapa="cerrar" data-etapa-estado="actual"><rect x="530" y="6" width="124" height="44" rx="8" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/><text x="592" y="24" text-anchor="middle" fill="#202124" font-size="12" font-weight="700">5. Cerrar</text><text x="592" y="40" text-anchor="middle" fill="#1a73e8" font-size="11" font-weight="500">Activa · Secc. 7</text></g></svg></div>
+</header>
+<div class="a3-columns">
+<div class="a3-col"><section class="section-card" data-seccion="1"><h2 class="section-title">1. Contexto y Desperdicio (Muda) Observado</h2>
+<ul><li><strong>Por qué importa ahora:</strong> los 11 plugins de <code>betterclaude.dev</code> aportan control de contexto, cuotas, tokens, snapshots Git por turno, cola sin desvío, commits atómicos, vista previa y narración, pero 0 operaban en Antigravity.</li><li><strong>Desperdicio observado:</strong> defecto de incompatibilidad; pegar el prompt de <code>betterclaude.dev</code> en <code>agy</code> fallaba en el primer comando y dejaba los 11 plugins inactivos.</li><li><strong>Pregunta cero:</strong> sin construir, Antigravity carecía de snapshots Git por turno (<code>time-machine</code>), cola sin desvío (<code>after</code>) y medidores combinados; se descartó &quot;no construir&quot;.</li></ul></section>
+<section class="section-card" data-seccion="2"><h2 class="section-title">2. Estado Actual en el Gemba</h2>
+<div class="brecha-bloque" data-brecha-tipo="cuadros"><div class="brecha-titulo">Brecha · plugins de better-claude operativos en Antigravity</div><div class="brecha-grid"><span class="brecha-fila-lbl">Actual</span><div class="cuadros-fila"><span class="cuad brecha mini"></span><span class="cuad brecha mini"></span><span class="cuad brecha mini"></span><span class="cuad brecha mini"></span><span class="cuad brecha mini"></span><span class="cuad brecha mini"></span><span class="cuad brecha mini"></span><span class="cuad brecha mini"></span><span class="cuad brecha mini"></span><span class="cuad brecha mini"></span><span class="cuad brecha mini"></span><span class="brecha-val">0 de 11</span></div><span class="brecha-fila-lbl">Meta</span><div class="cuadros-fila"><span class="cuad lleno mini"></span><span class="cuad lleno mini"></span><span class="cuad lleno mini"></span><span class="cuad lleno mini"></span><span class="cuad lleno mini"></span><span class="cuad lleno mini"></span><span class="cuad lleno mini"></span><span class="cuad lleno mini"></span><span class="cuad lleno mini"></span><span class="cuad lleno mini"></span><span class="cuad lleno mini"></span><span class="brecha-val">11 de 11</span></div></div><div class="brecha-gap">Brecha: 11 de 11 · para el 2026-11-22</div></div>
+<div class="table-wrap"><table class="cols-1"><thead><tr><th>Hecho medido</th></tr></thead><tbody><tr><td data-label="Hecho medido">0 de 11 plugins de <code>midudev/better-claude</code> pasaban <code>agy plugin validate --strict</code><sup><a class="nota-ref" href="#nota-1">1</a></sup></td></tr><tr><td data-label="Hecho medido">10 de 11 plugins usaban <code>&quot;modules&quot;: [&quot;./register.tsx&quot;]</code> e importaban <code>&#x27;claude-code&#x27;</code><sup><a class="nota-ref" href="#nota-2">2</a></sup></td></tr><tr><td data-label="Hecho medido">El prompt web usaba <code>claude plugin marketplace add</code> y <code>@better-claude</code>, inválidos en <code>agy</code><sup><a class="nota-ref" href="#nota-3">3</a></sup></td></tr><tr><td data-label="Hecho medido">Faltan <code>jq</code> y <code>magick</code> en proot; están <code>node</code> 24, <code>python3</code> (<code>PIL</code> 12.1.1), <code>pdftoppm</code> y <code>ffmpeg</code> (<code>librsvg</code>)<sup><a class="nota-ref" href="#nota-4">4</a></sup></td></tr><tr><td data-label="Hecho medido">Los núcleos JS de <code>after</code> y <code>time-machine</code> pasaban 157 de 157 pruebas en Node 24<sup><a class="nota-ref" href="#nota-5">5</a></sup></td></tr></tbody></table></div>
+<h3 class="subsection-title">Mapa del estado presente</h3>
+<div class="diagram-box dibujo"><svg class="svg-mapa-estado" data-mapa="presente" viewBox="0 0 340 164" data-variante="angosta" role="img" aria-label="Mapa del estado presente"><g data-paso="1" data-problema="si" data-tono="rojo" data-estallido="C"><g><rect x="8" y="4" width="276" height="44" rx="10" fill="#fce8e6" stroke="#c5221f" stroke-width="2"/><text x="20" y="21.5" fill="#202124" font-size="12.5" font-weight="700"><tspan x="20" dy="0">1. Copiar prompt en web</tspan></text><text x="20" y="37.5" fill="#5f6368" font-size="12"><tspan x="20" dy="0">betterclaude.dev · 5 s</tspan></text></g><g data-estallido-marca="C"><polygon points="313,5.5 316.4,14.5 324.1,8.8 322.1,18.1 331.6,17.5 324.9,24.3 333.3,28.9 323.9,31 328.5,39.4 319.5,36.1 318.8,45.7 313,38 307.2,45.7 306.5,36.1 297.5,39.4 302.1,31 292.7,28.9 301.1,24.3 294.4,17.5 303.9,18.1 301.9,8.8 309.6,14.5" fill="#fbbc04" stroke="#c5221f" stroke-width="2"/><text x="313" y="30.5" text-anchor="middle" fill="#c5221f" font-size="13" font-weight="800">C</text></g></g><g data-flecha="paso"><line x1="146" y1="49" x2="146" y2="53" stroke="#5f6368" stroke-width="2"/><polygon points="146,59 141,51 151,51" fill="#5f6368"/></g><g data-paso="2" data-problema="si" data-tono="rojo" data-estallido="A"><g><rect x="8" y="60" width="276" height="44" rx="10" fill="#fce8e6" stroke="#c5221f" stroke-width="2"/><text x="20" y="77.5" fill="#202124" font-size="12.5" font-weight="700"><tspan x="20" dy="0">2. Instalar plugin</tspan></text><text x="20" y="93.5" fill="#5f6368" font-size="12"><tspan x="20" dy="0">agy plugin install · 3 s</tspan></text></g><g data-estallido-marca="A"><polygon points="313,61.5 316.4,70.5 324.1,64.8 322.1,74.1 331.6,73.5 324.9,80.3 333.3,84.9 323.9,87 328.5,95.4 319.5,92.1 318.8,101.7 313,94 307.2,101.7 306.5,92.1 297.5,95.4 302.1,87 292.7,84.9 301.1,80.3 294.4,73.5 303.9,74.1 301.9,64.8 309.6,70.5" fill="#fbbc04" stroke="#c5221f" stroke-width="2"/><text x="313" y="86.5" text-anchor="middle" fill="#c5221f" font-size="13" font-weight="800">A</text></g></g><g data-flecha="paso"><line x1="146" y1="105" x2="146" y2="109" stroke="#5f6368" stroke-width="2"/><polygon points="146,115 141,107 151,107" fill="#5f6368"/></g><g data-paso="3" data-problema="si" data-tono="rojo" data-estallido="B"><g><rect x="8" y="116" width="276" height="44" rx="10" fill="#fce8e6" stroke="#c5221f" stroke-width="2"/><text x="20" y="133.5" fill="#202124" font-size="12.5" font-weight="700"><tspan x="20" dy="0">3. Correr hooks y barra</tspan></text><text x="20" y="149.5" fill="#5f6368" font-size="12"><tspan x="20" dy="0">runtime de agy · inmediato</tspan></text></g><g data-estallido-marca="B"><polygon points="313,117.5 316.4,126.5 324.1,120.8 322.1,130.1 331.6,129.5 324.9,136.3 333.3,140.9 323.9,143 328.5,151.4 319.5,148.1 318.8,157.7 313,150 307.2,157.7 306.5,148.1 297.5,151.4 302.1,143 292.7,140.9 301.1,136.3 294.4,129.5 303.9,130.1 301.9,120.8 309.6,126.5" fill="#fbbc04" stroke="#c5221f" stroke-width="2"/><text x="313" y="142.5" text-anchor="middle" fill="#c5221f" font-size="13" font-weight="800">B</text></g></g></svg><svg class="svg-mapa-estado" data-mapa="presente" viewBox="0 0 480 164" data-variante="ancha" role="img" aria-label="Mapa del estado presente"><g data-paso="1" data-problema="si" data-tono="rojo" data-estallido="C"><g><rect x="8" y="4" width="416" height="44" rx="10" fill="#fce8e6" stroke="#c5221f" stroke-width="2"/><text x="20" y="21.5" fill="#202124" font-size="12.5" font-weight="700"><tspan x="20" dy="0">1. Copiar prompt en web</tspan></text><text x="20" y="37.5" fill="#5f6368" font-size="12"><tspan x="20" dy="0">betterclaude.dev · 5 s</tspan></text></g><g data-estallido-marca="C"><polygon points="453,5.5 456.4,14.5 464.1,8.8 462.1,18.1 471.6,17.5 464.9,24.3 473.3,28.9 463.9,31 468.5,39.4 459.5,36.1 458.8,45.7 453,38 447.2,45.7 446.5,36.1 437.5,39.4 442.1,31 432.7,28.9 441.1,24.3 434.4,17.5 443.9,18.1 441.9,8.8 449.6,14.5" fill="#fbbc04" stroke="#c5221f" stroke-width="2"/><text x="453" y="30.5" text-anchor="middle" fill="#c5221f" font-size="13" font-weight="800">C</text></g></g><g data-flecha="paso"><line x1="216" y1="49" x2="216" y2="53" stroke="#5f6368" stroke-width="2"/><polygon points="216,59 211,51 221,51" fill="#5f6368"/></g><g data-paso="2" data-problema="si" data-tono="rojo" data-estallido="A"><g><rect x="8" y="60" width="416" height="44" rx="10" fill="#fce8e6" stroke="#c5221f" stroke-width="2"/><text x="20" y="77.5" fill="#202124" font-size="12.5" font-weight="700"><tspan x="20" dy="0">2. Instalar plugin</tspan></text><text x="20" y="93.5" fill="#5f6368" font-size="12"><tspan x="20" dy="0">agy plugin install · 3 s</tspan></text></g><g data-estallido-marca="A"><polygon points="453,61.5 456.4,70.5 464.1,64.8 462.1,74.1 471.6,73.5 464.9,80.3 473.3,84.9 463.9,87 468.5,95.4 459.5,92.1 458.8,101.7 453,94 447.2,101.7 446.5,92.1 437.5,95.4 442.1,87 432.7,84.9 441.1,80.3 434.4,73.5 443.9,74.1 441.9,64.8 449.6,70.5" fill="#fbbc04" stroke="#c5221f" stroke-width="2"/><text x="453" y="86.5" text-anchor="middle" fill="#c5221f" font-size="13" font-weight="800">A</text></g></g><g data-flecha="paso"><line x1="216" y1="105" x2="216" y2="109" stroke="#5f6368" stroke-width="2"/><polygon points="216,115 211,107 221,107" fill="#5f6368"/></g><g data-paso="3" data-problema="si" data-tono="rojo" data-estallido="B"><g><rect x="8" y="116" width="416" height="44" rx="10" fill="#fce8e6" stroke="#c5221f" stroke-width="2"/><text x="20" y="133.5" fill="#202124" font-size="12.5" font-weight="700"><tspan x="20" dy="0">3. Correr hooks y barra</tspan></text><text x="20" y="149.5" fill="#5f6368" font-size="12"><tspan x="20" dy="0">runtime de agy · inmediato</tspan></text></g><g data-estallido-marca="B"><polygon points="453,117.5 456.4,126.5 464.1,120.8 462.1,130.1 471.6,129.5 464.9,136.3 473.3,140.9 463.9,143 468.5,151.4 459.5,148.1 458.8,157.7 453,150 447.2,157.7 446.5,148.1 437.5,151.4 442.1,143 432.7,140.9 441.1,136.3 434.4,129.5 443.9,130.1 441.9,120.8 449.6,126.5" fill="#fbbc04" stroke="#c5221f" stroke-width="2"/><text x="453" y="142.5" text-anchor="middle" fill="#c5221f" font-size="13" font-weight="800">B</text></g></g></svg></div>
+<div class="leyenda-estallidos"><div class="leyenda-item" data-leyenda-estallido="A"><svg class="mini-estallido" width="24" height="24" viewBox="-12 -12 24 24" aria-hidden="true"><polygon points="0,-10.5 1.7,-5.9 5.7,-8.8 4.7,-4.1 9.6,-4.4 6.1,-0.9 10.4,1.5 5.6,2.6 7.9,6.9 3.4,5.2 3,10.1 0,6.2 -3,10.1 -3.4,5.2 -7.9,6.9 -5.6,2.6 -10.4,1.5 -6.1,-0.9 -9.6,-4.4 -4.7,-4.1 -5.7,-8.8 -1.7,-5.9" fill="#fbbc04" stroke="#c5221f" stroke-width="1.8"/><text x="0" y="3.8" text-anchor="middle" fill="#c5221f" font-size="11" font-weight="800">A</text></svg><span>faltaba <code>plugin.json</code> raíz y <code>hooks</code> importaba <code>&#x27;claude-code&#x27;</code></span></div><div class="leyenda-item" data-leyenda-estallido="B"><svg class="mini-estallido" width="24" height="24" viewBox="-12 -12 24 24" aria-hidden="true"><polygon points="0,-10.5 1.7,-5.9 5.7,-8.8 4.7,-4.1 9.6,-4.4 6.1,-0.9 10.4,1.5 5.6,2.6 7.9,6.9 3.4,5.2 3,10.1 0,6.2 -3,10.1 -3.4,5.2 -7.9,6.9 -5.6,2.6 -10.4,1.5 -6.1,-0.9 -9.6,-4.4 -4.7,-4.1 -5.7,-8.8 -1.7,-5.9" fill="#fbbc04" stroke="#c5221f" stroke-width="1.8"/><text x="0" y="3.8" text-anchor="middle" fill="#c5221f" font-size="11" font-weight="800">B</text></svg><span>sin <code>statusLine</code> ni soporte sin <code>jq</code> o <code>magick</code></span></div><div class="leyenda-item" data-leyenda-estallido="C"><svg class="mini-estallido" width="24" height="24" viewBox="-12 -12 24 24" aria-hidden="true"><polygon points="0,-10.5 1.7,-5.9 5.7,-8.8 4.7,-4.1 9.6,-4.4 6.1,-0.9 10.4,1.5 5.6,2.6 7.9,6.9 3.4,5.2 3,10.1 0,6.2 -3,10.1 -3.4,5.2 -7.9,6.9 -5.6,2.6 -10.4,1.5 -6.1,-0.9 -9.6,-4.4 -4.7,-4.1 -5.7,-8.8 -1.7,-5.9" fill="#fbbc04" stroke="#c5221f" stroke-width="1.8"/><text x="0" y="3.8" text-anchor="middle" fill="#c5221f" font-size="11" font-weight="800">C</text></svg><span>emitía comandos <code>claude plugin</code> incompatibles con <code>agy</code></span></div></div>
+<details class="mapa-detalles"><summary>Ver tabla del mapa (presente)</summary><div class="table-wrap"><table class="cols-many"><thead><tr><th>Paso</th><th>Quién</th><th>Tiempo</th><th>Problema</th><th>Fuente</th></tr></thead><tbody><tr><td data-label="Paso">1. Copiar prompt en web</td><td data-label="Quién"><code>betterclaude.dev</code></td><td data-label="Tiempo">5 s</td><td data-label="Problema">[C] emitía comandos <code>claude plugin</code> incompatibles con <code>agy</code></td><td data-label="Fuente">https://betterclaude.dev/</td></tr><tr><td data-label="Paso">2. Instalar plugin</td><td data-label="Quién"><code>agy plugin install</code></td><td data-label="Tiempo">3 s</td><td data-label="Problema">[A] faltaba <code>plugin.json</code> raíz y <code>hooks</code> importaba <code>&#x27;claude-code&#x27;</code></td><td data-label="Fuente">docs/evidencia-gemba-inicial.log:3-4</td></tr><tr><td data-label="Paso">3. Correr hooks y barra</td><td data-label="Quién">runtime de <code>agy</code></td><td data-label="Tiempo">inmediato</td><td data-label="Problema">[B] sin <code>statusLine</code> ni soporte sin <code>jq</code> o <code>magick</code></td><td data-label="Fuente">docs/evidencia-gemba-inicial.log:5-6</td></tr></tbody></table></div></details></section>
+<section class="section-card" data-seccion="3"><h2 class="section-title">3. Meta y Criterio de Aceptación</h2>
+<ul><li><strong>Meta:</strong> 11 de 11 plugins adaptados, validados con <code>agy plugin validate --strict</code> (0 errores, 0 avisos), instalados en <code>~/.gemini/config/plugins/</code> y con catálogo web autocontenido.</li><li><strong>Criterio de aceptación:</strong> <code>agy plugin validate --strict</code> pasa en los 11; <code>agy plugin list</code> muestra los 11 habilitados; suite <code>node --test</code> 100 % verde; <code>chequeo-gemba.sh</code> limpio y web UTF-8 sin red verificada.</li></ul></section>
+<section class="section-card" data-seccion="4"><h2 class="section-title">4. Análisis de Causa Raíz</h2>
+<div class="table-wrap"><table class="cols-3"><thead><tr><th>Estado</th><th>Observación</th><th>Evidencia en Gemba o prueba pendiente</th></tr></thead><tbody><tr><td data-label="Estado"><strong>Verificado</strong></td><td data-label="Observación">Antigravity exige <code>plugin.json</code> raíz, <code>hooks.json</code> por comandos stdin/stdout y <code>skills/&lt;nombre&gt;/SKILL.md</code></td><td data-label="Evidencia en Gemba o prueba pendiente">https://antigravity.google/docs/build-plugins.md</td></tr><tr><td data-label="Estado"><strong>Verificado</strong></td><td data-label="Observación"><code>better-statusline.mjs</code> responde con mediana de 109.2 ms bajo proot ARM64</td><td data-label="Evidencia en Gemba o prueba pendiente">docs/evidencia-gemba-cierre.log:5</td></tr><tr><td data-label="Estado"><strong>Verificado</strong></td><td data-label="Observación">En <code>Stop</code>, devolver <code>{&quot;decision&quot;:&quot;continue&quot;,&quot;reason&quot;:&quot;...&quot;}</code> drena la cola FIFO en prueba real</td><td data-label="Evidencia en Gemba o prueba pendiente">docs/evidencia-gemba-cierre.log:6</td></tr><tr><td data-label="Estado"><strong>Supuesto</strong></td><td data-label="Observación">El esquema JSON de <code>statusLine</code> de <code>agy</code> se mantendrá estable en futuras versiones mayores</td><td data-label="Evidencia en Gemba o prueba pendiente">correr <code>node --test</code> tras cada actualización mayor de <code>agy</code></td></tr></tbody></table></div>
+<h3 class="subsection-title">4a. Ishikawa</h3>
+<div class="diagram-box dibujo"><svg class="svg-ishikawa" viewBox="0 0 340 421" data-variante="angosta" role="img" aria-label="Diagrama de Ishikawa de seis ramas"><line x1="170" y1="10" x2="170" y2="342" stroke="#5f6368" stroke-width="2.5"/><polygon points="170,347 164,339 176,339" fill="#c5221f"/><g data-rama="Método" data-estado="FOCO" opacity="1"><line x1="156" y1="18.5" x2="170" y2="71" stroke="#b06000" stroke-width="2.0"/><line x1="156" y1="65" x2="168.4" y2="65" stroke="#b06000" stroke-width="1.2"/><circle cx="170" cy="71" r="3.0" fill="#b06000"/><g><rect x="4" y="5" width="152" height="27" rx="5" fill="#fef7e0" stroke="#b06000" stroke-width="1.2"/><text x="10" y="16.8" fill="#202124" font-size="12" font-weight="700">Método</text><text x="10" y="28.8" fill="#b06000" font-size="12" font-weight="700" letter-spacing="0.2">FOCO</text></g><g><rect x="4" y="34" width="152" height="62" rx="5" fill="#ffffff" stroke="#b06000" stroke-opacity="0.9" stroke-width="1.1"/><text x="10" y="48" fill="#202124" font-size="12"><tspan x="10" dy="0">El prompt de</tspan><tspan x="10" dy="14.2">instalación asumía</tspan><tspan x="10" dy="14.2">marketplaces de</tspan><tspan x="10" dy="14.2">Claude Code</tspan></text></g></g><g data-rama="Máquina" data-estado="FOCO" opacity="1"><line x1="184" y1="18.5" x2="170" y2="83" stroke="#b06000" stroke-width="2.0"/><line x1="184" y1="72" x2="172.4" y2="72" stroke="#b06000" stroke-width="1.2"/><circle cx="170" cy="83" r="3.0" fill="#b06000"/><g><rect x="184" y="5" width="152" height="27" rx="5" fill="#fef7e0" stroke="#b06000" stroke-width="1.2"/><text x="190" y="16.8" fill="#202124" font-size="12" font-weight="700">Máquina</text><text x="190" y="28.8" fill="#b06000" font-size="12" font-weight="700" letter-spacing="0.2">FOCO</text></g><g><rect x="184" y="34" width="152" height="76" rx="5" fill="#ffffff" stroke="#b06000" stroke-opacity="0.9" stroke-width="1.1"/><text x="190" y="48" fill="#202124" font-size="12"><tspan x="190" dy="0">Los mods TSX</tspan><tspan x="190" dy="14.2">importaban</tspan><tspan x="190" dy="14.2">&#x27;claude-code&#x27; en vez</tspan><tspan x="190" dy="14.2">de hooks.json, skills/ y</tspan><tspan x="190" dy="14.2">statusLine</tspan></text></g></g><g data-rama="Material" data-estado="DESCARTADA" opacity="0.88"><line x1="156" y1="129.5" x2="170" y2="189" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="4 3"/><line x1="156" y1="183" x2="168.6" y2="183" stroke="#9aa0a6" stroke-width="1.2"/><circle cx="170" cy="189" r="3.0" fill="#9aa0a6"/><g><rect x="4" y="116" width="152" height="27" rx="5" fill="#f1f3f4" stroke="#dadce0" stroke-width="1.2"/><text x="10" y="127.8" fill="#5f6368" font-size="12" font-weight="700">Material</text><text x="10" y="139.8" fill="#80868b" font-size="12" font-weight="700" letter-spacing="0.2">DESCARTADA</text></g><g><rect x="4" y="145" width="152" height="76" rx="5" fill="#f8f9fa" stroke="#dadce0" stroke-opacity="1" stroke-width="1.1"/><text x="10" y="159" fill="#5f6368" font-size="12"><tspan x="10" dy="0">Los módulos puros</tspan><tspan x="10" dy="14.2">(git.js, queue.js,</tspan><tspan x="10" dy="14.2">text.ts, paths.ts,</tspan><tspan x="10" dy="14.2">pixels.ts) estarían</tspan><tspan x="10" dy="14.2">acoplados</tspan></text></g></g><g data-rama="Medición" data-estado="DESCARTADA" opacity="0.88"><line x1="184" y1="129.5" x2="170" y2="172.5" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="4 3"/><line x1="184" y1="161.5" x2="173.6" y2="161.5" stroke="#9aa0a6" stroke-width="1.2"/><circle cx="170" cy="172.5" r="3.0" fill="#9aa0a6"/><g><rect x="184" y="116" width="152" height="27" rx="5" fill="#f1f3f4" stroke="#dadce0" stroke-width="1.2"/><text x="190" y="127.8" fill="#5f6368" font-size="12" font-weight="700">Medición</text><text x="190" y="139.8" fill="#80868b" font-size="12" font-weight="700" letter-spacing="0.2">DESCARTADA</text></g><g><rect x="184" y="145" width="152" height="33" rx="5" fill="#f8f9fa" stroke="#dadce0" stroke-opacity="1" stroke-width="1.1"/><text x="190" y="159" fill="#5f6368" font-size="12"><tspan x="190" dy="0">Faltaría validador</tspan><tspan x="190" dy="14.2">oficial de estructura</tspan></text></g></g><g data-rama="Medio" data-estado="FOCO" opacity="1"><line x1="156" y1="240.5" x2="170" y2="300" stroke="#b06000" stroke-width="2.0"/><line x1="156" y1="294" x2="168.6" y2="294" stroke="#b06000" stroke-width="1.2"/><circle cx="170" cy="300" r="3.0" fill="#b06000"/><g><rect x="4" y="227" width="152" height="27" rx="5" fill="#fef7e0" stroke="#b06000" stroke-width="1.2"/><text x="10" y="238.8" fill="#202124" font-size="12" font-weight="700">Medio</text><text x="10" y="250.8" fill="#b06000" font-size="12" font-weight="700" letter-spacing="0.2">FOCO</text></g><g><rect x="4" y="256" width="152" height="76" rx="5" fill="#ffffff" stroke="#b06000" stroke-opacity="0.9" stroke-width="1.1"/><text x="10" y="270" fill="#202124" font-size="12"><tspan x="10" dy="0">Termux proot carece</tspan><tspan x="10" dy="14.2">de jq y magick, sufre</tspan><tspan x="10" dy="14.2">hardlinks con npm y</tspan><tspan x="10" dy="14.2">carece de</tspan><tspan x="10" dy="14.2">claude-haiku-5-5</tspan></text></g></g><g data-rama="Relevo" data-estado="DESCARTADA" opacity="0.88"><line x1="184" y1="240.5" x2="170" y2="290.5" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="4 3"/><line x1="184" y1="279.5" x2="173.1" y2="279.5" stroke="#9aa0a6" stroke-width="1.2"/><circle cx="170" cy="290.5" r="3.0" fill="#9aa0a6"/><g><rect x="184" y="227" width="152" height="27" rx="5" fill="#f1f3f4" stroke="#dadce0" stroke-width="1.2"/><text x="190" y="238.8" fill="#5f6368" font-size="12" font-weight="700">Relevo</text><text x="190" y="250.8" fill="#80868b" font-size="12" font-weight="700" letter-spacing="0.2">DESCARTADA</text></g><g><rect x="184" y="256" width="152" height="47" rx="5" fill="#f8f9fa" stroke="#dadce0" stroke-opacity="1" stroke-width="1.1"/><text x="190" y="270" fill="#5f6368" font-size="12"><tspan x="190" dy="0">Un HTML multiarchivo</tspan><tspan x="190" dy="14.2">fallaría al abrirse por</tspan><tspan x="190" dy="14.2">content:// en Android</tspan></text></g></g><g data-elemento="brecha"><rect x="6" y="347" width="328" height="68" rx="7" fill="#fce8e6" stroke="#c5221f" stroke-width="1.8"/><text x="170" y="363.5" text-anchor="middle" fill="#c5221f" font-size="12" font-weight="700" letter-spacing="0.5">PROBLEMA · BRECHA</text><line x1="16" y1="369" x2="324" y2="369" stroke="#f5c2c0" stroke-width="1"/><text x="15" y="380" fill="#202124" font-size="12" font-weight="600"><tspan x="15" dy="0">plugins de better-claude operativos en</tspan><tspan x="15" dy="14">Antigravity: de 0 de 11 (medido) a 11 de 11</tspan><tspan x="15" dy="14">(meta) para el 2026-11-22</tspan></text></g></svg><svg class="svg-ishikawa" viewBox="0 0 480 308" data-variante="ancha" role="img" aria-label="Diagrama de Ishikawa de seis ramas"><line x1="240" y1="10" x2="240" y2="243" stroke="#5f6368" stroke-width="2.5"/><polygon points="240,248 234,240 246,240" fill="#c5221f"/><g data-rama="Método" data-estado="FOCO" opacity="1"><line x1="216" y1="16" x2="240" y2="50.5" stroke="#b06000" stroke-width="2.0"/><line x1="216" y1="44.5" x2="235.8" y2="44.5" stroke="#b06000" stroke-width="1.2"/><circle cx="240" cy="50.5" r="3.0" fill="#b06000"/><g><rect x="8" y="6" width="208" height="20" rx="5" fill="#fef7e0" stroke="#b06000" stroke-width="1.2"/><text x="14" y="20.5" fill="#202124" font-size="12" font-weight="700">Método</text><text x="210" y="20.5" text-anchor="end" fill="#b06000" font-size="11" font-weight="700" letter-spacing="0.2">FOCO</text></g><g><rect x="8" y="28" width="208" height="33" rx="5" fill="#ffffff" stroke="#b06000" stroke-opacity="0.9" stroke-width="1.1"/><text x="14" y="42" fill="#202124" font-size="11.5"><tspan x="14" dy="0">El prompt de instalación asumía</tspan><tspan x="14" dy="14">marketplaces de Claude Code</tspan></text></g></g><g data-rama="Máquina" data-estado="FOCO" opacity="1"><line x1="264" y1="16" x2="240" y2="62.5" stroke="#b06000" stroke-width="2.0"/><line x1="264" y1="51.5" x2="245.7" y2="51.5" stroke="#b06000" stroke-width="1.2"/><circle cx="240" cy="62.5" r="3.0" fill="#b06000"/><g><rect x="264" y="6" width="208" height="20" rx="5" fill="#fef7e0" stroke="#b06000" stroke-width="1.2"/><text x="270" y="20.5" fill="#202124" font-size="12" font-weight="700">Máquina</text><text x="466" y="20.5" text-anchor="end" fill="#b06000" font-size="11" font-weight="700" letter-spacing="0.2">FOCO</text></g><g><rect x="264" y="28" width="208" height="47" rx="5" fill="#ffffff" stroke="#b06000" stroke-opacity="0.9" stroke-width="1.1"/><text x="270" y="42" fill="#202124" font-size="11.5"><tspan x="270" dy="0">Los mods TSX importaban</tspan><tspan x="270" dy="14">&#x27;claude-code&#x27; en vez de</tspan><tspan x="270" dy="14">hooks.json, skills/ y statusLine</tspan></text></g></g><g data-rama="Material" data-estado="DESCARTADA" opacity="0.88"><line x1="216" y1="95" x2="240" y2="136.5" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="4 3"/><line x1="216" y1="130.5" x2="236.5" y2="130.5" stroke="#9aa0a6" stroke-width="1.2"/><circle cx="240" cy="136.5" r="3.0" fill="#9aa0a6"/><g><rect x="8" y="85" width="208" height="20" rx="5" fill="#f1f3f4" stroke="#dadce0" stroke-width="1.2"/><text x="14" y="99.5" fill="#5f6368" font-size="12" font-weight="700">Material</text><text x="210" y="99.5" text-anchor="end" fill="#80868b" font-size="11" font-weight="700" letter-spacing="0.2">DESCARTADA</text></g><g><rect x="8" y="107" width="208" height="47" rx="5" fill="#f8f9fa" stroke="#dadce0" stroke-opacity="1" stroke-width="1.1"/><text x="14" y="121" fill="#5f6368" font-size="11.5"><tspan x="14" dy="0">Los módulos puros (git.js,</tspan><tspan x="14" dy="14">queue.js, text.ts, paths.ts,</tspan><tspan x="14" dy="14">pixels.ts) estarían acoplados</tspan></text></g></g><g data-rama="Medición" data-estado="DESCARTADA" opacity="0.88"><line x1="264" y1="95" x2="240" y2="134.5" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="4 3"/><line x1="264" y1="123.5" x2="246.7" y2="123.5" stroke="#9aa0a6" stroke-width="1.2"/><circle cx="240" cy="134.5" r="3.0" fill="#9aa0a6"/><g><rect x="264" y="85" width="208" height="20" rx="5" fill="#f1f3f4" stroke="#dadce0" stroke-width="1.2"/><text x="270" y="99.5" fill="#5f6368" font-size="12" font-weight="700">Medición</text><text x="466" y="99.5" text-anchor="end" fill="#80868b" font-size="11" font-weight="700" letter-spacing="0.2">DESCARTADA</text></g><g><rect x="264" y="107" width="208" height="33" rx="5" fill="#f8f9fa" stroke="#dadce0" stroke-opacity="1" stroke-width="1.1"/><text x="270" y="121" fill="#5f6368" font-size="11.5"><tspan x="270" dy="0">Faltaría validador oficial de</tspan><tspan x="270" dy="14">estructura</tspan></text></g></g><g data-rama="Medio" data-estado="FOCO" opacity="1"><line x1="216" y1="174" x2="240" y2="215.5" stroke="#b06000" stroke-width="2.0"/><line x1="216" y1="209.5" x2="236.5" y2="209.5" stroke="#b06000" stroke-width="1.2"/><circle cx="240" cy="215.5" r="3.0" fill="#b06000"/><g><rect x="8" y="164" width="208" height="20" rx="5" fill="#fef7e0" stroke="#b06000" stroke-width="1.2"/><text x="14" y="178.5" fill="#202124" font-size="12" font-weight="700">Medio</text><text x="210" y="178.5" text-anchor="end" fill="#b06000" font-size="11" font-weight="700" letter-spacing="0.2">FOCO</text></g><g><rect x="8" y="186" width="208" height="47" rx="5" fill="#ffffff" stroke="#b06000" stroke-opacity="0.9" stroke-width="1.1"/><text x="14" y="200" fill="#202124" font-size="11.5"><tspan x="14" dy="0">Termux proot carece de jq y</tspan><tspan x="14" dy="14">magick, sufre hardlinks con npm</tspan><tspan x="14" dy="14">y carece de claude-haiku-5-5</tspan></text></g></g><g data-rama="Relevo" data-estado="DESCARTADA" opacity="0.88"><line x1="264" y1="174" x2="240" y2="213.5" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="4 3"/><line x1="264" y1="202.5" x2="246.7" y2="202.5" stroke="#9aa0a6" stroke-width="1.2"/><circle cx="240" cy="213.5" r="3.0" fill="#9aa0a6"/><g><rect x="264" y="164" width="208" height="20" rx="5" fill="#f1f3f4" stroke="#dadce0" stroke-width="1.2"/><text x="270" y="178.5" fill="#5f6368" font-size="12" font-weight="700">Relevo</text><text x="466" y="178.5" text-anchor="end" fill="#80868b" font-size="11" font-weight="700" letter-spacing="0.2">DESCARTADA</text></g><g><rect x="264" y="186" width="208" height="33" rx="5" fill="#f8f9fa" stroke="#dadce0" stroke-opacity="1" stroke-width="1.1"/><text x="270" y="200" fill="#5f6368" font-size="11.5"><tspan x="270" dy="0">Un HTML multiarchivo fallaría al</tspan><tspan x="270" dy="14">abrirse por content:// en Android</tspan></text></g></g><g data-elemento="brecha"><rect x="16" y="248" width="448" height="54" rx="7" fill="#fce8e6" stroke="#c5221f" stroke-width="1.8"/><text x="240" y="264.5" text-anchor="middle" fill="#c5221f" font-size="11.5" font-weight="700" letter-spacing="0.5">PROBLEMA · BRECHA</text><line x1="26" y1="270" x2="454" y2="270" stroke="#f5c2c0" stroke-width="1"/><text x="25" y="281" fill="#202124" font-size="11.5" font-weight="600"><tspan x="25" dy="0">plugins de better-claude operativos en Antigravity: de 0 de 11</tspan><tspan x="25" dy="14">(medido) a 11 de 11 (meta) para el 2026-11-22</tspan></text></g></svg></div>
+<details class="mapa-detalles"><summary>Ver tabla del Ishikawa</summary><div class="table-wrap"><table class="cols-4"><thead><tr><th>Rama</th><th>Hipótesis u observación</th><th>Evidencia en Gemba</th><th>Estado</th></tr></thead><tbody><tr><td data-label="Rama">Método</td><td data-label="Hipótesis u observación">El prompt de instalación asumía marketplaces de Claude Code</td><td data-label="Evidencia en Gemba">docs/evidencia-gemba-inicial.log:9</td><td data-label="Estado"><span class="badge-pill badge-yellow">FOCO</span></td></tr><tr><td data-label="Rama">Máquina</td><td data-label="Hipótesis u observación">Los mods TSX importaban <code>&#x27;claude-code&#x27;</code> en vez de <code>hooks.json</code>, <code>skills/</code> y <code>statusLine</code></td><td data-label="Evidencia en Gemba">docs/evidencia-gemba-inicial.log:4</td><td data-label="Estado"><span class="badge-pill badge-yellow">FOCO</span></td></tr><tr><td data-label="Rama">Material</td><td data-label="Hipótesis u observación">Los módulos puros (<code>git.js</code>, <code>queue.js</code>, <code>text.ts</code>, <code>paths.ts</code>, <code>pixels.ts</code>) estarían acoplados</td><td data-label="Evidencia en Gemba">157/157 pruebas pasan aisladas</td><td data-label="Estado"><span class="badge-pill badge-muted">DESCARTADA</span></td></tr><tr><td data-label="Rama">Medición</td><td data-label="Hipótesis u observación">Faltaría validador oficial de estructura</td><td data-label="Evidencia en Gemba"><code>agy plugin validate --strict</code> valida todo el paquete</td><td data-label="Estado"><span class="badge-pill badge-muted">DESCARTADA</span></td></tr><tr><td data-label="Rama">Medio</td><td data-label="Hipótesis u observación">Termux proot carece de <code>jq</code> y <code>magick</code>, sufre hardlinks con <code>npm</code> y carece de <code>claude-haiku-5-5</code></td><td data-label="Evidencia en Gemba">docs/evidencia-gemba-inicial.log:5-6</td><td data-label="Estado"><span class="badge-pill badge-yellow">FOCO</span></td></tr><tr><td data-label="Rama">Relevo</td><td data-label="Hipótesis u observación">Un HTML multiarchivo fallaría al abrirse por <code>content://</code> en Android</td><td data-label="Evidencia en Gemba">regla de entregable único UTF-8</td><td data-label="Estado"><span class="badge-pill badge-muted">DESCARTADA</span></td></tr></tbody></table></div></details>
+<h3 class="subsection-title">4b. Porqués por causa</h3>
+<div class="cadenas-4b"><div class="cadena-bloque"><div class="cadena"><b>Causa A (Máquina):</b> los plugins usaban mods TSX de <code>&#x27;claude-code&#x27;</code> que Antigravity no carga. → faltaban <code>plugin.json</code> raíz, <code>skills/*/SKILL.md</code> y <code>hooks.json</code> de comandos. → fueron diseñados para el motor interno de Claude Code.</div><div class="cadena-conclusion"><span class="por-lo-tanto">Por lo tanto:</span> fueron diseñados como mods TSX de <code>&#x27;claude-code&#x27;</code> → carecían de <code>plugin.json</code>, <code>skills/</code> y <code>hooks.json</code> estándar → 0 de 11 cargaban en Antigravity.</div></div><div class="cadena-bloque"><div class="cadena"><b>Causa B (Medio):</b> asumir <code>jq</code>, <code>sips</code>, <code>magick</code> o <code>claude-haiku-5-5</code> rompía la ejecución en proot ARM64 y en <code>agy</code>. → <code>jq</code> y <code>magick</code> faltan y <code>claude-haiku-5-5</code> no existe en <code>agy models</code>. → el código original asumía utilidades de escritorio y modelos de Anthropic.</div><div class="cadena-conclusion"><span class="por-lo-tanto">Por lo tanto:</span> asumir binarios ausentes y modelos ajenos → fallaba en proot ARM64 y en <code>agy</code> → vistas previas y medidores quedaban inactivos.</div></div><div class="cadena-bloque"><div class="cadena"><b>Causa C (Método):</b> la web generaba comandos <code>claude plugin</code> incompatibles con <code>agy</code>. → <code>agy</code> instala por ruta o URL de GitHub con <code>agy plugin install</code>. → <code>web/index.html</code> solo tenía la plantilla de Claude Code.</div><div class="cadena-conclusion"><span class="por-lo-tanto">Por lo tanto:</span> <code>web/index.html</code> solo emitía <code>claude plugin</code> → <code>agy</code> rechazaba el comando → la instalación guiada fallaba.</div></div></div></section></div>
+<div class="a3-col"><section class="section-card" data-seccion="5"><h2 class="section-title">5. Contramedidas y Poka-Yoke</h2>
+<div class="diagram-box dibujo"><svg class="svg-pick" viewBox="0 0 340 277" data-variante="angosta" role="img" aria-label="Matriz PICK de opciones"><g data-elemento="leyenda-pick"><circle cx="52" cy="15" r="8" fill="none" stroke="#137333" stroke-opacity="0.35" stroke-width="1.5"/><circle cx="52" cy="15" r="5" fill="#137333"/><text x="64" y="19" fill="#202124" font-size="12" font-weight="600">Elegida</text><circle cx="136" cy="15" r="5.5" fill="#ffffff" stroke="#b06000" stroke-width="2"/><circle cx="136" cy="15" r="2" fill="#b06000"/><text x="147" y="19" fill="#202124" font-size="12" font-weight="600">Después</text><circle cx="226" cy="15" r="5" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="2 2"/><line x1="223.4" y1="12.4" x2="228.6" y2="17.6" stroke="#5f6368" stroke-width="1.5"/><line x1="223.4" y1="17.6" x2="228.6" y2="12.4" stroke="#5f6368" stroke-width="1.5"/><text x="237" y="19" fill="#5f6368" font-size="12" font-weight="600">Descartada</text></g><g data-cuadrante-caja="Implementar"><rect x="44" y="26" width="146" height="103" fill="#e6f4ea" stroke="#dadce0" stroke-width="1.5"/><text x="52" y="44" fill="#137333" font-size="13" font-weight="700">Implementar</text><text x="52" y="59" fill="#5f6368" font-size="12"><tspan x="52" dy="0">Impacto alto ·</tspan><tspan x="52" dy="13">Esfuerzo bajo</tspan></text></g><g data-cuadrante-caja="Desafío"><rect x="190" y="26" width="146" height="103" fill="#fef7e0" stroke="#dadce0" stroke-width="1.5"/><text x="198" y="44" fill="#b06000" font-size="13" font-weight="700">Desafío</text><text x="198" y="59" fill="#5f6368" font-size="12"><tspan x="198" dy="0">Impacto alto ·</tspan><tspan x="198" dy="13">Esfuerzo alto</tspan></text></g><g data-cuadrante-caja="Posible"><rect x="44" y="129" width="146" height="103" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.5"/><text x="52" y="147" fill="#5f6368" font-size="13" font-weight="700">Posible</text><text x="52" y="162" fill="#5f6368" font-size="12"><tspan x="52" dy="0">Impacto bajo ·</tspan><tspan x="52" dy="13">Esfuerzo bajo</tspan></text></g><g data-cuadrante-caja="Eliminar"><rect x="190" y="129" width="146" height="103" fill="#f1f3f4" stroke="#dadce0" stroke-width="1.5"/><text x="198" y="147" fill="#80868b" font-size="13" font-weight="700">Eliminar</text><text x="198" y="162" fill="#5f6368" font-size="12"><tspan x="198" dy="0">Impacto bajo ·</tspan><tspan x="198" dy="13">Esfuerzo alto</tspan></text></g><g data-codigo="O-1" data-cuadrante="Implementar" data-decision="elegida"><circle cx="64" cy="85" r="10.5" fill="none" stroke="#137333" stroke-opacity="0.35" stroke-width="1.5"/><circle data-punto="pick" cx="64" cy="85" r="6.5" fill="#137333" stroke="#ffffff" stroke-width="1.5"/><text x="77" y="89" fill="#137333" font-size="12.5" font-weight="700">O-1</text></g><g data-codigo="O-2" data-cuadrante="Implementar" data-decision="elegida"><circle cx="129" cy="85" r="10.5" fill="none" stroke="#137333" stroke-opacity="0.35" stroke-width="1.5"/><circle data-punto="pick" cx="129" cy="85" r="6.5" fill="#137333" stroke="#ffffff" stroke-width="1.5"/><text x="142" y="89" fill="#137333" font-size="12.5" font-weight="700">O-2</text></g><g data-codigo="O-3" data-cuadrante="Implementar" data-decision="elegida"><circle cx="64" cy="117" r="10.5" fill="none" stroke="#137333" stroke-opacity="0.35" stroke-width="1.5"/><circle data-punto="pick" cx="64" cy="117" r="6.5" fill="#137333" stroke="#ffffff" stroke-width="1.5"/><text x="77" y="121" fill="#137333" font-size="12.5" font-weight="700">O-3</text></g><g data-codigo="O-4" data-cuadrante="Posible" data-decision="descartada"><circle data-punto="pick" cx="64" cy="188" r="6.5" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="2 2"/><line x1="61.2" y1="185.2" x2="66.8" y2="190.8" stroke="#5f6368" stroke-width="1.5"/><line x1="61.2" y1="190.8" x2="66.8" y2="185.2" stroke="#5f6368" stroke-width="1.5"/><text x="77" y="192" fill="#5f6368" font-size="12.5" font-weight="600">O-4</text></g><line x1="37" y1="232" x2="37" y2="32" stroke="#5f6368" stroke-width="1.5"/><polygon points="37,26 33,35 41,35" fill="#5f6368"/><text x="28" y="77.5" text-anchor="middle" transform="rotate(-90 28 77.5)" fill="#202124" font-size="12" font-weight="700" letter-spacing="1">ALTO</text><text x="28" y="180.5" text-anchor="middle" transform="rotate(-90 28 180.5)" fill="#5f6368" font-size="12" font-weight="700" letter-spacing="1">BAJO</text><text x="13" y="129" text-anchor="middle" transform="rotate(-90 13 129)" fill="#202124" font-size="12" font-weight="700" letter-spacing="1.5">IMPACTO</text><line x1="44" y1="242" x2="330" y2="242" stroke="#5f6368" stroke-width="1.5"/><polygon points="336,242 327,238 327,246" fill="#5f6368"/><text x="117" y="257" text-anchor="middle" fill="#202124" font-size="12" font-weight="700" letter-spacing="1">BAJO</text><text x="263" y="257" text-anchor="middle" fill="#5f6368" font-size="12" font-weight="700" letter-spacing="1">ALTO</text><text x="190" y="274" text-anchor="middle" fill="#202124" font-size="12" font-weight="700" letter-spacing="1.5">ESFUERZO</text></svg><svg class="svg-pick" viewBox="0 0 480 251" data-variante="ancha" role="img" aria-label="Matriz PICK de opciones"><g data-elemento="leyenda-pick"><circle cx="64" cy="15" r="8" fill="none" stroke="#137333" stroke-opacity="0.35" stroke-width="1.5"/><circle cx="64" cy="15" r="5" fill="#137333"/><text x="76" y="19" fill="#202124" font-size="12" font-weight="600">Elegida</text><circle cx="166" cy="15" r="5.5" fill="#ffffff" stroke="#b06000" stroke-width="2"/><circle cx="166" cy="15" r="2" fill="#b06000"/><text x="177" y="19" fill="#202124" font-size="12" font-weight="600">Después</text><circle cx="276" cy="15" r="5" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="2 2"/><line x1="273.4" y1="12.4" x2="278.6" y2="17.6" stroke="#5f6368" stroke-width="1.5"/><line x1="273.4" y1="17.6" x2="278.6" y2="12.4" stroke="#5f6368" stroke-width="1.5"/><text x="287" y="19" fill="#5f6368" font-size="12" font-weight="600">Descartada</text></g><g data-cuadrante-caja="Implementar"><rect x="52" y="26" width="212" height="90" fill="#e6f4ea" stroke="#dadce0" stroke-width="1.5"/><text x="60" y="44" fill="#137333" font-size="13" font-weight="700">Implementar</text><text x="60" y="59" fill="#5f6368" font-size="11"><tspan x="60" dy="0">Impacto alto · Esfuerzo bajo</tspan></text></g><g data-cuadrante-caja="Desafío"><rect x="264" y="26" width="212" height="90" fill="#fef7e0" stroke="#dadce0" stroke-width="1.5"/><text x="272" y="44" fill="#b06000" font-size="13" font-weight="700">Desafío</text><text x="272" y="59" fill="#5f6368" font-size="11"><tspan x="272" dy="0">Impacto alto · Esfuerzo alto</tspan></text></g><g data-cuadrante-caja="Posible"><rect x="52" y="116" width="212" height="90" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.5"/><text x="60" y="134" fill="#5f6368" font-size="13" font-weight="700">Posible</text><text x="60" y="149" fill="#5f6368" font-size="11"><tspan x="60" dy="0">Impacto bajo · Esfuerzo bajo</tspan></text></g><g data-cuadrante-caja="Eliminar"><rect x="264" y="116" width="212" height="90" fill="#f1f3f4" stroke="#dadce0" stroke-width="1.5"/><text x="272" y="134" fill="#80868b" font-size="13" font-weight="700">Eliminar</text><text x="272" y="149" fill="#5f6368" font-size="11"><tspan x="272" dy="0">Impacto bajo · Esfuerzo alto</tspan></text></g><g data-codigo="O-1" data-cuadrante="Implementar" data-decision="elegida"><circle cx="74" cy="72" r="10.5" fill="none" stroke="#137333" stroke-opacity="0.35" stroke-width="1.5"/><circle data-punto="pick" cx="74" cy="72" r="6.5" fill="#137333" stroke="#ffffff" stroke-width="1.5"/><text x="88" y="76" fill="#137333" font-size="12" font-weight="700">O-1</text></g><g data-codigo="O-2" data-cuadrante="Implementar" data-decision="elegida"><circle cx="172" cy="72" r="10.5" fill="none" stroke="#137333" stroke-opacity="0.35" stroke-width="1.5"/><circle data-punto="pick" cx="172" cy="72" r="6.5" fill="#137333" stroke="#ffffff" stroke-width="1.5"/><text x="186" y="76" fill="#137333" font-size="12" font-weight="700">O-2</text></g><g data-codigo="O-3" data-cuadrante="Implementar" data-decision="elegida"><circle cx="74" cy="104" r="10.5" fill="none" stroke="#137333" stroke-opacity="0.35" stroke-width="1.5"/><circle data-punto="pick" cx="74" cy="104" r="6.5" fill="#137333" stroke="#ffffff" stroke-width="1.5"/><text x="88" y="108" fill="#137333" font-size="12" font-weight="700">O-3</text></g><g data-codigo="O-4" data-cuadrante="Posible" data-decision="descartada"><circle data-punto="pick" cx="74" cy="162" r="6.5" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="2 2"/><line x1="71.2" y1="159.2" x2="76.8" y2="164.8" stroke="#5f6368" stroke-width="1.5"/><line x1="71.2" y1="164.8" x2="76.8" y2="159.2" stroke="#5f6368" stroke-width="1.5"/><text x="88" y="166" fill="#5f6368" font-size="12" font-weight="600">O-4</text></g><line x1="43" y1="206" x2="43" y2="32" stroke="#5f6368" stroke-width="1.5"/><polygon points="43,26 39,35 47,35" fill="#5f6368"/><text x="33" y="71" text-anchor="middle" transform="rotate(-90 33 71)" fill="#202124" font-size="11" font-weight="700" letter-spacing="1">ALTO</text><text x="33" y="161" text-anchor="middle" transform="rotate(-90 33 161)" fill="#5f6368" font-size="11" font-weight="700" letter-spacing="1">BAJO</text><text x="15" y="116" text-anchor="middle" transform="rotate(-90 15 116)" fill="#202124" font-size="12" font-weight="700" letter-spacing="1.5">IMPACTO</text><line x1="52" y1="216" x2="470" y2="216" stroke="#5f6368" stroke-width="1.5"/><polygon points="476,216 467,212 467,220" fill="#5f6368"/><text x="158" y="231" text-anchor="middle" fill="#202124" font-size="11" font-weight="700" letter-spacing="1">BAJO</text><text x="370" y="231" text-anchor="middle" fill="#5f6368" font-size="11" font-weight="700" letter-spacing="1">ALTO</text><text x="264" y="248" text-anchor="middle" fill="#202124" font-size="12" font-weight="700" letter-spacing="1.5">ESFUERZO</text></svg></div>
+<div class="table-wrap table-pick"><table class="cols-many"><thead><tr><th>Opción</th><th>Causa</th><th>Nivel</th><th>Impacto</th><th>Esfuerzo</th><th>Cuadrante</th><th>Decisión</th><th>Predicción</th></tr></thead><tbody><tr><td data-label="Opción">O-1 Adaptar los 11 plugins autónomos (<code>plugin.json</code>, <code>skills/</code>, <code>hooks.json</code>, <code>agents/</code> con <code>flash</code> y <code>sync-shared.mjs</code>)</td><td data-label="Causa">A</td><td data-label="Nivel">raíz</td><td data-label="Impacto">alto</td><td data-label="Esfuerzo">bajo (5 h)</td><td data-label="Cuadrante">Implementar</td><td data-label="Decisión"><span class="badge-pill badge-yellow">elegida</span></td><td data-label="Predicción">plugins validados con <code>--strict</code>: de 0 de 11 a 11 de 11 (base: docs/evidencia-gemba-inicial.log:8)</td></tr><tr><td data-label="Opción">O-2 Motor Node ESM cero dependencias + <code>PIL</code>/<code>librsvg</code>/<code>pdftoppm</code>/<code>ffmpeg</code> + <code>better-statusline.mjs</code></td><td data-label="Causa">B</td><td data-label="Nivel">poka-yoke</td><td data-label="Impacto">alto</td><td data-label="Esfuerzo">bajo (5 h)</td><td data-label="Cuadrante">Implementar</td><td data-label="Decisión"><span class="badge-pill badge-yellow">elegida</span></td><td data-label="Predicción">fallos por binarios faltantes o hardlinks en proot: de 3 a 0 (base: docs/evidencia-gemba-inicial.log:6)</td></tr><tr><td data-label="Opción">O-3 Web <code>better-antigravity</code> en un solo HTML UTF-8 + <code>install.sh</code> idempotente + comando <code>agy-after</code></td><td data-label="Causa">C</td><td data-label="Nivel">raíz</td><td data-label="Impacto">alto</td><td data-label="Esfuerzo">bajo (5 h)</td><td data-label="Cuadrante">Implementar</td><td data-label="Decisión"><span class="badge-pill badge-yellow">elegida</span></td><td data-label="Predicción">comandos fallidos al instalar o actualizar: de 2 a 0 (base: docs/evidencia-gemba-inicial.log:9)</td></tr><tr><td data-label="Opción">O-4 Empaquetar los 11 en un único plugin monolítico indivisible</td><td data-label="Causa">A</td><td data-label="Nivel">curita</td><td data-label="Impacto">bajo</td><td data-label="Esfuerzo">bajo (5 h)</td><td data-label="Cuadrante">Posible</td><td data-label="Decisión"><span class="badge-pill badge-muted">descartada</span></td><td data-label="Predicción">impide elegir e instalar plugins sueltos como en betterclaude.dev (base: https://betterclaude.dev/)</td></tr></tbody></table></div>
+<h3 class="subsection-title">Mapa del estado futuro</h3>
+<div class="diagram-box dibujo"><svg class="svg-mapa-estado" data-mapa="futuro" viewBox="0 0 340 217" data-variante="angosta" role="img" aria-label="Mapa del estado futuro"><g data-paso="1" data-problema="no" data-tono="verde"><g><rect x="8" y="4" width="276" height="57" rx="10" fill="#e6f4ea" stroke="#137333" stroke-width="2"/><text x="20" y="21.5" fill="#202124" font-size="12.5" font-weight="700"><tspan x="20" dy="0">1. Elegir plugins y copiar prompt o</tspan><tspan x="20" dy="15">correr install.sh</tspan></text><text x="20" y="52.5" fill="#5f6368" font-size="12"><tspan x="20" dy="0">web/index.html e install.sh · 5 s</tspan></text></g><g data-resuelto="si"><text x="313" y="39.5" text-anchor="middle" fill="#137333" font-size="20" font-weight="800">✓</text></g></g><g data-flecha="paso"><line x1="146" y1="62" x2="146" y2="66" stroke="#5f6368" stroke-width="2"/><polygon points="146,72 141,64 151,64" fill="#5f6368"/></g><g data-paso="2" data-problema="no" data-tono="verde"><g><rect x="8" y="73" width="276" height="71" rx="10" fill="#e6f4ea" stroke="#137333" stroke-width="2"/><text x="20" y="90.5" fill="#202124" font-size="12.5" font-weight="700"><tspan x="20" dy="0">2. Validar e instalar cada plugin</tspan><tspan x="20" dy="15">autónomo</tspan></text><text x="20" y="121.5" fill="#5f6368" font-size="12"><tspan x="20" dy="0">agy plugin validate --strict + agy plugin</tspan><tspan x="20" dy="14">install · 5 s</tspan></text></g><g data-resuelto="si"><text x="313" y="115.5" text-anchor="middle" fill="#137333" font-size="20" font-weight="800">✓</text></g></g><g data-flecha="paso"><line x1="146" y1="145" x2="146" y2="149" stroke="#5f6368" stroke-width="2"/><polygon points="146,155 141,147 151,147" fill="#5f6368"/></g><g data-paso="3" data-problema="no" data-tono="verde"><g><rect x="8" y="156" width="276" height="57" rx="10" fill="#e6f4ea" stroke="#137333" stroke-width="2"/><text x="20" y="173.5" fill="#202124" font-size="12.5" font-weight="700"><tspan x="20" dy="0">3. Ejecutar hooks de ciclo de vida</tspan><tspan x="20" dy="15">y barra TUI</tspan></text><text x="20" y="204.5" fill="#5f6368" font-size="12"><tspan x="20" dy="0">Node 24 ESM + PIL + librsvg · 109.2 ms</tspan></text></g><g data-resuelto="si"><text x="313" y="191.5" text-anchor="middle" fill="#137333" font-size="20" font-weight="800">✓</text></g></g></svg><svg class="svg-mapa-estado" data-mapa="futuro" viewBox="0 0 480 164" data-variante="ancha" role="img" aria-label="Mapa del estado futuro"><g data-paso="1" data-problema="no" data-tono="verde"><g><rect x="8" y="4" width="416" height="44" rx="10" fill="#e6f4ea" stroke="#137333" stroke-width="2"/><text x="20" y="21.5" fill="#202124" font-size="12.5" font-weight="700"><tspan x="20" dy="0">1. Elegir plugins y copiar prompt o correr install.sh</tspan></text><text x="20" y="37.5" fill="#5f6368" font-size="12"><tspan x="20" dy="0">web/index.html e install.sh · 5 s</tspan></text></g><g data-resuelto="si"><text x="453" y="33" text-anchor="middle" fill="#137333" font-size="20" font-weight="800">✓</text></g></g><g data-flecha="paso"><line x1="216" y1="49" x2="216" y2="53" stroke="#5f6368" stroke-width="2"/><polygon points="216,59 211,51 221,51" fill="#5f6368"/></g><g data-paso="2" data-problema="no" data-tono="verde"><g><rect x="8" y="60" width="416" height="44" rx="10" fill="#e6f4ea" stroke="#137333" stroke-width="2"/><text x="20" y="77.5" fill="#202124" font-size="12.5" font-weight="700"><tspan x="20" dy="0">2. Validar e instalar cada plugin autónomo</tspan></text><text x="20" y="93.5" fill="#5f6368" font-size="12"><tspan x="20" dy="0">agy plugin validate --strict + agy plugin install · 5 s</tspan></text></g><g data-resuelto="si"><text x="453" y="89" text-anchor="middle" fill="#137333" font-size="20" font-weight="800">✓</text></g></g><g data-flecha="paso"><line x1="216" y1="105" x2="216" y2="109" stroke="#5f6368" stroke-width="2"/><polygon points="216,115 211,107 221,107" fill="#5f6368"/></g><g data-paso="3" data-problema="no" data-tono="verde"><g><rect x="8" y="116" width="416" height="44" rx="10" fill="#e6f4ea" stroke="#137333" stroke-width="2"/><text x="20" y="133.5" fill="#202124" font-size="12.5" font-weight="700"><tspan x="20" dy="0">3. Ejecutar hooks de ciclo de vida y barra TUI</tspan></text><text x="20" y="149.5" fill="#5f6368" font-size="12"><tspan x="20" dy="0">Node 24 ESM + PIL + librsvg · 109.2 ms</tspan></text></g><g data-resuelto="si"><text x="453" y="145" text-anchor="middle" fill="#137333" font-size="20" font-weight="800">✓</text></g></g></svg></div>
+<details class="mapa-detalles"><summary>Ver tabla del mapa (futuro)</summary><div class="table-wrap"><table class="cols-many"><thead><tr><th>Paso</th><th>Quién</th><th>Tiempo</th><th>Problema</th><th>Fuente</th></tr></thead><tbody><tr><td data-label="Paso">1. Elegir plugins y copiar prompt o correr <code>install.sh</code></td><td data-label="Quién"><code>web/index.html</code> e <code>install.sh</code></td><td data-label="Tiempo">5 s</td><td data-label="Problema">ninguno</td><td data-label="Fuente">docs/evidencia-gemba-cierre.log:8</td></tr><tr><td data-label="Paso">2. Validar e instalar cada plugin autónomo</td><td data-label="Quién"><code>agy plugin validate --strict</code> + <code>agy plugin install</code></td><td data-label="Tiempo">5 s</td><td data-label="Problema">ninguno</td><td data-label="Fuente">docs/evidencia-gemba-cierre.log:2-3</td></tr><tr><td data-label="Paso">3. Ejecutar hooks de ciclo de vida y barra TUI</td><td data-label="Quién">Node 24 ESM + <code>PIL</code> + <code>librsvg</code></td><td data-label="Tiempo">109.2 ms</td><td data-label="Problema">ninguno</td><td data-label="Fuente">docs/evidencia-gemba-cierre.log:5</td></tr></tbody></table></div></details></section>
+<section class="section-card" data-seccion="6"><h2 class="section-title">6. Plan de Ejecución PDCA y Ventana de Despliegue</h2>
+<div class="table-wrap"><table class="cols-4"><thead><tr><th>Paso</th><th>Acción</th><th>Responsable</th><th>Verificación</th></tr></thead><tbody><tr><td data-label="Paso">1</td><td data-label="Acción">Construir <code>shared/store.mjs</code> y <code>scripts/better-statusline.mjs</code> con pruebas unitarias</td><td data-label="Responsable">agente constructor</td><td data-label="Verificación"><code>node --test test/statusline.test.mjs</code> verde</td></tr><tr><td data-label="Paso">2</td><td data-label="Acción">Construir y sincronizar los 11 plugins autónomos en <code>plugins/*</code></td><td data-label="Responsable"><code>scripts/sync-shared.mjs</code></td><td data-label="Verificación"><code>agy plugin validate --strict</code> pasa 11 de 11</td></tr><tr><td data-label="Paso">3</td><td data-label="Acción">Construir <code>web/index.html</code> autocontenida e <code>install.sh</code> con respaldo de <code>settings.json</code></td><td data-label="Responsable">agente constructor</td><td data-label="Verificación"><code>chequeo-gemba.sh</code> limpio y charset UTF-8</td></tr><tr><td data-label="Paso">4</td><td data-label="Acción">Instalar los 11 plugins en <code>agy</code>, corregir hallazgos de Ojos Frescos y medir en Gemba</td><td data-label="Responsable"><code>install.sh</code> + revisores</td><td data-label="Verificación"><code>agy plugin list</code> muestra los 11 habilitados</td></tr></tbody></table></div>
+<ul><li><strong>Ventana de despliegue:</strong> aplicada en <code>/root/better-antigravity</code> y en <code>~/.gemini/config/plugins/</code> con respaldo <code>settings.json.bak-better-agy</code>, preservando intactos <code>tas</code>, <code>egm</code> y <code>agent-skills</code>.</li><li><strong>Autorización:</strong> no hace falta para repositorio local e instalación en este Antigravity; crear repositorio remoto en GitHub queda preparado para decisión del usuario.</li></ul></section>
+<section class="section-card" data-seccion="7"><h2 class="section-title">7. Verificación en Gemba y Estandarización</h2>
+<ul><li><strong>Predicho contra real:</strong> O-1 predijo 11 de 11 validados; se midieron 11 de 11 activos (<code>agy plugin list</code>). O-2 predijo menos de 120 ms; se midieron todas las pruebas verdes y mediana de 109.2 ms.</li><li><strong>Qué puede salir mal y cómo lo veremos:</strong> sin voz TTS local, <code>Narrator</code> avisa cómo instalar <code>espeak-ng</code> o <code>termux-api</code>; sin navegador GUI en proot, <code>test/web.test.mjs</code> valida el HTML y compila el JS con <code>node:vm</code>.</li><li><strong>Próxima revisión:</strong> ventana de 20 h en la próxima sesión interactiva de <code>agy</code> para confirmar comodidad visual de <code>better-statusline.mjs</code> con <code>stack_with_default: true</code>.</li><li><strong>Estandarización:</strong> <code>scripts/sync-shared.mjs</code>, <code>scripts/validate-all.mjs</code>, <code>scripts/build-web.mjs</code>, <code>install.sh</code> y <code>~/.gemini/antigravity-cli/better-statusline.mjs</code> quedan versionados en Git en <code>/root/better-antigravity</code>.</li></ul></section></div>
+</div>
+<section class="notas" data-seccion="notas"><h2 class="notas-titulo">Fuentes (Gemba)</h2><ol><li id="nota-1">docs/evidencia-gemba-inicial.log:3</li><li id="nota-2">docs/evidencia-gemba-inicial.log:4</li><li id="nota-3">https://betterclaude.dev/</li><li id="nota-4">docs/evidencia-gemba-inicial.log:6</li><li id="nota-5">docs/evidencia-gemba-inicial.log:7</li></ol></section>
+</main>
+</body></html>
