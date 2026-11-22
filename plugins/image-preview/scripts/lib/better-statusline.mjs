@@ -18,7 +18,8 @@ const RED = '\x1b[91m'
 const BLUE = '\x1b[94m'
 const CYAN = '\x1b[36m'
 const MAGENTA = '\x1b[95m'
-const ORANGE = '\x1b[38;5;208m'
+const AGY_BLUE = '\x1b[38;5;75m'
+const AGY_SKY = '\x1b[38;5;39m'
 const SEP = `${DIM} · ${R}`
 
 function homeDir () {
@@ -180,7 +181,7 @@ function renderTokenMeter (payload, rootDir) {
   const totIn = Number(cw?.total_input_tokens) || lastIn
   const totOut = Number(cw?.total_output_tokens) || lastOut
   const turnPart = `${BLUE}↑${R} ${shortTokens(lastIn)}  ${GREEN}↓${R} ${shortTokens(lastOut)}` +
-    (lastCache > 0 ? `  ${ORANGE}cache${R} ${shortTokens(lastCache)}` : '')
+    (lastCache > 0 ? `  ${AGY_SKY}cache${R} ${shortTokens(lastCache)}` : '')
   const sessPart = `${DIM}  ·  session ↑ ${shortTokens(totIn)}  ↓ ${shortTokens(totOut)}${R}`
   return {
     full: turnPart + sessPart,
@@ -226,7 +227,7 @@ function renderSubMeter (payload, pluginCfg, rootDir, nowMs) {
   const fmtWindow = (w, withBar, withReset) => {
     const pct = Math.round(w.percentUsed)
     const filled = Math.round((Math.min(Math.max(w.percentUsed, 0), 100) / 100) * 10)
-    const barColor = pct >= 90 ? RED : pct >= 75 ? YELLOW : ORANGE
+    const barColor = pct >= 90 ? RED : pct >= 75 ? YELLOW : AGY_BLUE
     const bar = withBar ? ` ${barColor}${'━'.repeat(filled)}${R}${DIM}${'─'.repeat(10 - filled)}${R}` : ''
     const rstStr = withReset && w.resetSec > 0 ? `${DIM} ↻ ${formatUntil(w.resetSec)}${R}` : ''
     return `${DIM}${w.label}${R}${bar} ${pct}%${rstStr}`
@@ -248,7 +249,7 @@ function renderTimeMachineBadge (payload, rootDir) {
   if (!st || !Array.isArray(st.states) || st.states.length === 0) return null
   const maxId = st.states.reduce((m, s) => Math.max(m, s.id), 0)
   const cur = st.cursor ?? maxId
-  const label = cur < maxId ? `${YELLOW}⏪ #${cur}/${maxId}${R}` : `${ORANGE}⏪ #${cur}${R}`
+  const label = cur < maxId ? `${YELLOW}⏪ #${cur}/${maxId}${R}` : `${AGY_BLUE}⏪ #${cur}${R}`
   return { full: label, compact: label, minimal: label }
 }
 

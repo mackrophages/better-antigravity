@@ -120,6 +120,8 @@ describe('scripts/better-statusline.mjs', () => {
       }
 
       const wide = formatStatusLine(payload, { nowMs: 16_000 })
+      assert.equal(wide.includes('38;5;208m'), false, 'No Claude orange ANSI in statusLine')
+      assert.equal(wide.includes('38;5;75m'), true, 'Antigravity electric blue ANSI must color quota bar')
       const plainWide = wide.replace(/\x1b\[[0-9;]*m/g, '')
       assert.match(plainWide, /5h ━━━━━━──── 58% ↻ 2h 10m/)
       assert.match(plainWide, /⏵ narrator on · ES/)

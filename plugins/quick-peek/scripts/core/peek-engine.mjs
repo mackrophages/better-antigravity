@@ -126,13 +126,13 @@ export function languageOf (filePath) {
 }
 
 const ANSI_BY_KIND = {
-  k: '\x1b[38;5;208m', // coral keyword
-  s: '\x1b[32m',        // green string
-  n: '\x1b[94m',        // blue number
-  c: '\x1b[90m',        // gray comment
-  t: '\x1b[33m',        // yellow type
-  a: '\x1b[36m',        // cyan attr/key
-  f: '\x1b[97m',        // bright function
+  k: '\x1b[38;5;75m',  // Antigravity electric blue keyword
+  s: '\x1b[32m',       // green string
+  n: '\x1b[38;5;39m',  // orbital cyan number
+  c: '\x1b[90m',       // gray comment
+  t: '\x1b[33m',       // yellow type
+  a: '\x1b[36m',       // cyan attr/key
+  f: '\x1b[97m',       // bright function
   '': ''
 }
 
@@ -181,7 +181,7 @@ export function renderColoredExcerpt (excerpt) {
     const lineNo = excerpt.first + i
     const isTarget = lineNo === excerpt.mark
     const gutter = isTarget
-      ? `\x1b[38;5;208m\x1b[1m▶ ${String(lineNo).padStart(numWidth)}\x1b[0m`
+      ? `\x1b[38;5;75m\x1b[1m▶ ${String(lineNo).padStart(numWidth)}\x1b[0m`
       : `  \x1b[90m${String(lineNo).padStart(numWidth)}\x1b[0m`
     const code = tokens.map(([kind, txt]) => `${ANSI_BY_KIND[kind] || ''}${txt}\x1b[0m`).join('')
     return `${gutter} │ ${code}`
