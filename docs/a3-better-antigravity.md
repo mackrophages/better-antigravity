@@ -100,4 +100,4 @@
 - **Predicho contra real:** O-1 predijo 11 de 11 validados; se midieron 11 de 11 activos (`agy plugin list`). O-2 predijo menos de 120 ms; se midieron todas las pruebas verdes y mediana de 109.2 ms.
 - **Qué puede salir mal y cómo lo veremos:** sin voz TTS local, `Narrator` avisa cómo instalar `espeak-ng` o `termux-api`; sin navegador GUI en proot, `test/web.test.mjs` valida el HTML y compila el JS con `node:vm`.
 - **Próxima revisión:** ventana de 20 h en la próxima sesión interactiva de `agy` para confirmar comodidad visual de `better-statusline.mjs` con `stack_with_default: true`.
-- **Estandarización:** `scripts/sync-shared.mjs`, `scripts/validate-all.mjs`, `scripts/build-web.mjs`, `install.sh` y `~/.gemini/antigravity-cli/better-statusline.mjs` quedan versionados en Git en `/root/better-antigravity`.
+- **Estandarización:** `scripts/sync-shared.mjs`, `scripts/validate-all.mjs`, `scripts/build-web.mjs`, `scripts/better-statusline.mjs` e `install.sh` quedan versionados en Git en `/root/better-antigravity` e instalados en `~/.gemini/`.

@@ -14,7 +14,7 @@ const ORDER = [
     id: 'quick-peek',
     title: 'Quick Peek',
     summary: 'Convierte rutas en las respuestas en vistas previas coloreadas (20 líneas alrededor de `:línea`, carpetas, imágenes, PDFs y fotogramas de video) y las revela en tu gestor de archivos (`termux-open`, `Finder`, `Explorer` o `xdg-open`).',
-    demoHtml: `<div class="demo"><p class="line"><span class="p">&gt; </span><span class="accent">/quick-peek</span> scripts/better-statusline.mjs:42</p><p class="line"><span class="path-link" data-peek="statusline">📄 scripts/better-statusline.mjs:42</span> <span class="dim">JavaScript · 390 líneas · 11.9 KB</span></p><p class="line"><span class="accent">▶  42 │</span> function writeJsonAtomic (filePath, data) {</p></div>`
+    demoHtml: `<div class="demo"><p class="line"><span class="p">&gt; </span><span class="accent">/quick-peek</span> scripts/better-statusline.mjs:44</p><p class="line"><span class="path-link" data-peek="statusline">📄 scripts/better-statusline.mjs:44</span> <span class="dim">JavaScript · 395 líneas · 14.9 KB</span></p><p class="line"><span class="accent">▶  44 │</span> function writeJsonAtomic (filePath, data) {</p></div>`
   },
   {
     id: 'image-preview',
