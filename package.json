@@ -1,10 +1,11 @@
 {
   "name": "better-antigravity",
   "version": "1.0.0",
-  "description": "Free, open-source plugins and HUD mods adapted for Google Antigravity (agy) from midudev/better-claude: Quick Peek, Image Preview, Sub Meter, Context Meter, Commit, Narrator, Time Machine, After, Use Hydrogen, Think Hard, and Token Meter.",
+  "description": "Google Antigravity (agy) native adaptation of midudev/better-claude (betterclaude.dev by Miguel Ángel Durán @midudev): Quick Peek, Image Preview, Sub Meter, Context Meter, Commit, Narrator, Time Machine, After, Use Hydrogen, Think Hard, and Token Meter.",
   "type": "module",
   "license": "MIT",
-  "author": "Adapted for Google Antigravity from midudev/better-claude",
+  "author": "Original creator: Miguel Ángel Durán (@midudev) · Adapted for Google Antigravity",
+  "homepage": "https://github.com/mackrophages/better-antigravity",
   "repository": {
     "type": "git",
     "url": "https://github.com/mackrophages/better-antigravity.git"

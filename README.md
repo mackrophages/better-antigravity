@@ -1,5 +1,7 @@
 # Better Antigravity
 
+> **Créditos al creador original:** este proyecto es una adaptación para Google Antigravity del trabajo original creado por **[Miguel Ángel Durán (@midudev)](https://github.com/midudev)** en **[betterclaude.dev](https://betterclaude.dev/)** y **[`midudev/better-claude`](https://github.com/midudev/better-claude)** (con la colaboración de **[@DiegoMarty](https://github.com/DiegoMarty)** en `time-machine`). Todo el concepto de producto, diseño visual del catálogo y algoritmos base pertenecen a sus autores originales bajo licencia MIT.
+
 Adaptación nativa y de código abierto de **[betterclaude.dev](https://betterclaude.dev/)** ([`midudev/better-claude`](https://github.com/midudev/better-claude)) para **Google Antigravity (`agy`)**.
 
 Incluye los **11 plugins completos** (los 7 destacados en la web pública más los 4 adicionales del repositorio oficial), reescritos sobre las superficies nativas de Antigravity: `plugin.json`, `skills/<nombre>/SKILL.md`, `hooks.json` (`SessionStart`, `PreInvocation`, `PostInvocation`, `PreToolUse`, `Stop`), ejecución equilibrada sobre **Gemini 4 Hydrogen** y un multiplexor unificado de `statusLine` en Node ESM con **cero dependencias externas** (sin `node_modules`, inmune al fallo de hardlinks bajo Termux/proot).
@@ -22,36 +24,51 @@ Incluye los **11 plugins completos** (los 7 destacados en la web pública más l
 
 ## Instalación en Antigravity
 
-### Opción 1: Prompt de instalación de un solo paso (como en `betterclaude.dev`)
+### Opción 1: Desde GitHub (plugin individual o catálogo completo)
 
-Abre [`web/index.html`](web/index.html) para elegir los plugins y copiar el prompt, o pega directamente en Antigravity (`agy`):
+```bash
+# Instalar un plugin puntual directo desde GitHub en Antigravity
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/use-hydrogen
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/time-machine
 
-```text
-Instala o actualiza de forma idempotente estos plugins adaptados para Google Antigravity desde /root/better-antigravity ejecutando:
-
-bash /root/better-antigravity/install.sh --all
-agy plugin list
-
-Después avísame que abra una nueva sesión de agy para cargar los skills, hooks y la barra statusLine.
+# O clonar e instalar los 11 plugins + barra statusLine de una sola vez
+git clone https://github.com/mackrophages/better-antigravity.git
+bash better-antigravity/install.sh --all
 ```
 
-### Opción 2: Script directo desde terminal
+### Opción 2: Prompt de instalación de un solo paso (como en `betterclaude.dev`)
+
+Abre [`web/index.html`](web/index.html) para elegir los plugins y copiar el prompt (en modo GitHub o Local), o pega directamente en Antigravity (`agy`):
+
+```text
+Instala estos plugins para Google Antigravity desde github.com/mackrophages/better-antigravity ejecutando:
+
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/quick-peek
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/image-preview
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/sub-meter
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/context-meter
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/commit
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/narrator
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/time-machine
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/after
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/use-hydrogen
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/think-hard
+agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/token-meter
+
+Después verifica con agy plugin list que quedaron activos y dime que abra una nueva sesión de agy.
+```
+
+### Opción 3: Script local de gestión
 
 ```bash
 # Instalar los 11 plugins + configurar statusLine (con respaldo automático de settings.json)
-bash /root/better-antigravity/install.sh --all
+bash ./install.sh --all
 
 # Instalar solo algunos
-bash /root/better-antigravity/install.sh commit time-machine context-meter sub-meter
+bash ./install.sh commit time-machine context-meter sub-meter use-hydrogen
 
 # Desinstalar todos
-bash /root/better-antigravity/install.sh --uninstall
-```
-
-### Opción 3: Desde GitHub (una vez publicado el repositorio)
-
-```bash
-agy plugin install https://github.com/mackrophages/better-antigravity/tree/main/plugins/time-machine
+bash ./install.sh --uninstall
 ```
 
 ## Desarrollo y Verificación
@@ -63,6 +80,9 @@ node scripts/build-web.mjs     # Regenera web/index.html 100 % autocontenido
 node --test "test/*.test.mjs"  # Ejecuta la suite de pruebas automatizadas
 ```
 
-## Créditos y Licencia
+## Créditos y Autoría Original
 
-Licencia MIT. Concepto original, diseño de referencia y algoritmos base de [`midudev/better-claude`](https://github.com/midudev/better-claude) por **Miguel Ángel Durán (@midudev)** y **DiegoMarty** (`time-machine`). Adaptación nativa para Google Antigravity documentada en [`docs/a3-better-antigravity.md`](docs/a3-better-antigravity.md).
+- **Creador original:** **[Miguel Ángel Durán (@midudev)](https://github.com/midudev)**, autor de **[betterclaude.dev](https://betterclaude.dev/)** y del repositorio oficial **[`midudev/better-claude`](https://github.com/midudev/better-claude)**.
+- **Coautor en `time-machine`:** **[@DiegoMarty](https://github.com/DiegoMarty)**.
+- **Adaptación nativa para Google Antigravity (`agy`):** reescritura sobre `plugin.json`, `hooks.json`, `skills/`, `use-hydrogen` (`Gemini 4 Hydrogen`) y `better-statusline.mjs`, documentada en [`docs/a3-better-antigravity.md`](docs/a3-better-antigravity.md).
+- **Licencia:** [MIT](LICENSE), preservando íntegramente el aviso de copyright original de Miguel Ángel Durán (`midudev`).

@@ -346,7 +346,8 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
       <div class="badge-top"><span class="badge-dot"></span>11/11 plugins validados con <code>agy plugin validate --strict</code></div>
       <h1>better<span>antigravity</span></h1>
       <p class="lede">
-        Adaptación nativa para <strong>Google Antigravity (<code>agy</code>)</strong> de los 11 plugins y mods de
+        Adaptación nativa para <strong>Google Antigravity (<code>agy</code>)</strong> del proyecto original creado por
+        <a href="https://github.com/midudev" target="_blank" rel="noopener"><strong>Miguel Ángel Durán (@midudev)</strong></a> en
         <a href="https://betterclaude.dev/" target="_blank" rel="noopener">betterclaude.dev</a>
         (<a href="https://github.com/midudev/better-claude" target="_blank" rel="noopener">midudev/better-claude</a>):
         hooks de ciclo de vida reales, skills slash, ejecución equilibrada en Hydrogen y barra <code>statusLine</code> unificada.
@@ -357,8 +358,8 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
           <strong id="picks-label">Elige qué instalar</strong>
           <span class="count" id="picks-count">11 de 11</span>
           <div class="mode-switch" role="group" aria-label="Origen de instalación">
-            <button type="button" class="mode-btn" data-source="local" aria-pressed="true">Local (/root/better-antigravity)</button>
-            <button type="button" class="mode-btn" data-source="github" aria-pressed="false">GitHub URL</button>
+            <button type="button" class="mode-btn" data-source="github" aria-pressed="true">GitHub URL</button>
+            <button type="button" class="mode-btn" data-source="local" aria-pressed="false">Clon local</button>
           </div>
           <button type="button" class="select-toggle" id="picks-all">desmarcar todos</button>
         </div>
@@ -369,7 +370,7 @@ ${picksHtml}
 
         <div class="cta">
           <button type="button" class="primary" id="copy-prompt">Copiar prompt de instalación</button>
-          <span class="note">Pégalo directo en Antigravity (<code>agy</code>) o corre <code>bash /root/better-antigravity/install.sh</code>.</span>
+          <span class="note">Pégalo directo en Antigravity (<code>agy</code>) o clona y corre <code>bash install.sh --all</code>.</span>
         </div>
 
         <details open>
@@ -384,8 +385,8 @@ ${cardsHtml}
     </ol>
 
     <footer>
-      <div><strong>Better Antigravity</strong> · Licencia MIT · Basado en <code>midudev/better-claude</code> por Miguel Ángel Durán (midudev) y DiegoMarty.</div>
-      <div>Autocontenido (funciona 100 % sin red y por <code>content://</code> en Android) · Generado: 2026-11-22.</div>
+      <div><strong>Better Antigravity</strong> · Licencia MIT · Creador original: <a href="https://github.com/midudev" target="_blank" rel="noopener">Miguel Ángel Durán (@midudev)</a> en <a href="https://betterclaude.dev/" target="_blank" rel="noopener">betterclaude.dev</a> (<a href="https://github.com/midudev/better-claude" target="_blank" rel="noopener">midudev/better-claude</a>, con DiegoMarty en <code>time-machine</code>).</div>
+      <div>Autocontenido (funciona 100 % sin red y por <code>content://</code> en Android) · Repositorio: <a href="https://github.com/mackrophages/better-antigravity" target="_blank" rel="noopener">mackrophages/better-antigravity</a>.</div>
     </footer>
   </main>
 
@@ -415,7 +416,7 @@ ${cardsHtml}
       const $ = (s, ctx = document) => ctx.querySelector(s);
       const $$ = (s, ctx = document) => [...ctx.querySelectorAll(s)];
 
-      let sourceMode = 'local';
+      let sourceMode = 'github';
       const picks = $$('.pick');
       const promptEl = $('#prompt');
       const countEl = $('#picks-count');
@@ -468,7 +469,6 @@ ${cardsHtml}
         }
 
         return [
-          '# Nota: requiere haber publicado antes el repositorio en GitHub (ej.: gh repo create mackrophages/better-antigravity --public --source=/root/better-antigravity --push)',
           'Instala ' + (one ? 'este plugin para Google Antigravity' : 'estos plugins para Google Antigravity') + ' desde github.com/mackrophages/better-antigravity ejecutando:',
           '',
           ...names.map(n => 'agy plugin uninstall ' + n + ' 2>/dev/null || true && agy plugin install ' + GH_REPO + '/' + n),
