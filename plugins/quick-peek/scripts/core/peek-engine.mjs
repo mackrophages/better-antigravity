@@ -70,8 +70,14 @@ const TAB = '  '
 const LINE_CHARS = 200
 
 function grammar (rules, flags = '') {
+  let compiled
   return {
-    pattern: rules.length > 0 ? new RegExp(rules.map(([, src]) => `(${src})`).join('|'), `gm${flags}`) : undefined,
+    get pattern () {
+      if (compiled === undefined) {
+        compiled = rules.length > 0 ? new RegExp(rules.map(([, src]) => `(${src})`).join('|'), `gm${flags}`) : null
+      }
+      return compiled || undefined
+    },
     kinds: rules.map(([kind]) => kind)
   }
 }

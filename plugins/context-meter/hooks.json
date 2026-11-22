@@ -3,14 +3,14 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "node ./scripts/lib/ensure-hud.mjs",
+        "command": "./scripts/lib/hook-gate.sh ensure-hud",
         "timeout": 10
       }
     ],
     "PreInvocation": [
       {
         "type": "command",
-        "command": "node ./scripts/context-meter-hook.mjs",
+        "command": "./scripts/lib/hook-gate.sh context-meter-pre",
         "timeout": 10
       }
     ]

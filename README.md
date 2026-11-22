@@ -77,9 +77,10 @@ bash ./install.sh --uninstall
 
 ```bash
 node scripts/sync-shared.mjs   # Sincroniza librerías e íconos SVG en los 11 plugins
-node scripts/validate-all.mjs  # Corre agy plugin validate --strict en los 11 plugins
+node scripts/validate-all.mjs  # Corre agy plugin validate --strict en paralelo
 node scripts/build-web.mjs     # Regenera web/index.html 100 % autocontenido
-node --test "test/*.test.mjs"  # Ejecuta la suite de pruebas automatizadas
+node --test "test/*.test.mjs"  # Ejecuta las 17 pruebas automatizadas (incluye paridad C11/JS)
+node scripts/bench.mjs         # Mide latencias reales (ver resultados en PERF.md)
 ```
 
 ## Créditos y Autoría Original

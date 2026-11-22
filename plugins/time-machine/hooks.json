@@ -10,7 +10,7 @@
     "PreInvocation": [
       {
         "type": "command",
-        "command": "node ./scripts/tm-hook.mjs pre-invocation",
+        "command": "./scripts/lib/hook-gate.sh tm-pre-invocation",
         "timeout": 15
       }
     ],
@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ./scripts/tm-hook.mjs pre-tool",
+            "command": "./scripts/lib/hook-gate.sh tm-pre-tool",
             "timeout": 20
           }
         ]
@@ -29,7 +29,7 @@
     "Stop": [
       {
         "type": "command",
-        "command": "node ./scripts/tm-hook.mjs stop",
+        "command": "./scripts/lib/hook-gate.sh tm-stop",
         "timeout": 25
       }
     ]

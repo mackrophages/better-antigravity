@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -6,7 +7,8 @@ import {
   isHeadless,
   isSubcall,
   readStdinJson,
-  updateState
+  stateRoot,
+  writeState
 } from './lib/store.mjs'
 import { cleanUserRequest } from './lib/transcript.mjs'
 
@@ -18,12 +20,18 @@ if (isSubcall()) {
 const here = path.dirname(fileURLToPath(import.meta.url))
 const mode = process.argv[2] || 'pre'
 const payload = await readStdinJson()
-const sid = payload.conversationId
+const safeSid = String(payload.conversationId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64)
+const flagRel = safeSid ? `turn-flags/use-hydrogen-${safeSid}.json` : ''
+const flagAbs = flagRel ? path.join(stateRoot(), flagRel) : ''
+
+function clearFlag () {
+  if (flagAbs) {
+    try { fs.rmSync(flagAbs, { force: true }) } catch {}
+  }
+}
 
 if (mode === 'stop') {
-  if (sid) {
-    updateState(`turn-flags/${sid}.json`, {}, prev => ({ ...prev, useHydrogen: false }))
-  }
+  clearFlag()
   process.stdout.write('{}\n')
   process.exit(0)
 }
@@ -34,15 +42,13 @@ const isMarked = input.startsWith('_') && !input.startsWith('__') && input.slice
 const isFirstStep = payload.invocationNum === undefined || payload.invocationNum === 0
 
 if (!isMarked || !isFirstStep) {
-  if (sid && isFirstStep) {
-    updateState(`turn-flags/${sid}.json`, {}, prev => ({ ...prev, useHydrogen: false }))
-  }
+  if (isFirstStep) clearFlag()
   process.stdout.write('{}\n')
   process.exit(0)
 }
 
-if (sid) {
-  updateState(`turn-flags/${sid}.json`, {}, prev => ({ ...prev, useHydrogen: true }))
+if (flagRel) {
+  writeState(flagRel, { useHydrogen: true })
 }
 
 const cfg = getPluginConfig('use-hydrogen', { model: 'gemini-4-hydrogen-high' })

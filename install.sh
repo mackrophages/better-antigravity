@@ -50,28 +50,37 @@ if [[ -d "$HOME/.gemini/config/plugins/use-flash" ]]; then
   agy plugin uninstall use-flash >/dev/null 2>&1 || rm -rf "$HOME/.gemini/config/plugins/use-flash"
 fi
 
-NEED_HUD=0
+# Read disabled plugins once up front instead of spawning Node per plugin
+DISABLED_LIST="$(node -e '
+  const fs = require("node:fs"), p = process.env.HOME + "/.gemini/config/config.json";
+  try {
+    const c = JSON.parse(fs.readFileSync(p, "utf8"))?.plugins || {};
+    process.stdout.write(" " + Object.keys(c).filter(k => c[k]?.enabled === false).join(" ") + " ");
+  } catch { process.stdout.write(" "); }
+')"
+
+# Validate all requested plugins concurrently in a single parallel pass
 for name in "${TARGETS[@]}"; do
-  plugin_path="$ROOT_DIR/plugins/$name"
-  if [[ ! -d "$plugin_path" ]]; then
+  if [[ ! -d "$ROOT_DIR/plugins/$name" ]]; then
     echo "Unknown plugin: $name" >&2
     exit 1
   fi
-  was_disabled="$(node -e '
-    const fs = require("node:fs"), p = process.env.HOME + "/.gemini/config/config.json";
-    try {
-      const c = JSON.parse(fs.readFileSync(p, "utf8"));
-      process.stdout.write(c?.plugins?.[process.argv[1]]?.enabled === false ? "1" : "0");
-    } catch { process.stdout.write("0"); }
-  ' "$name")"
-  agy plugin validate --strict "$plugin_path" >/dev/null
+done
+if ! VAL_OUT="$(node "$ROOT_DIR/scripts/validate-all.mjs" "${TARGETS[@]}" 2>&1)"; then
+  echo "$VAL_OUT" >&2
+  exit 1
+fi
+
+NEED_HUD=0
+for name in "${TARGETS[@]}"; do
+  plugin_path="$ROOT_DIR/plugins/$name"
   # Reinstall cleanly if already present so updates take effect immediately
   if [[ -d "$HOME/.gemini/config/plugins/$name" ]]; then
     agy plugin uninstall "$name" >/dev/null 2>&1 || rm -rf "$HOME/.gemini/config/plugins/$name"
   fi
   agy plugin install "$plugin_path"
   # Keep previously disabled plugins disabled, and default narrator to disabled in proot without TTS
-  if [[ "$was_disabled" == "1" ]]; then
+  if [[ "$DISABLED_LIST" == *" $name "* ]]; then
     agy plugin disable "$name" >/dev/null 2>&1 || true
   elif [[ "$name" == "narrator" && ( $# -eq 0 || "${1:-}" == "--all" ) && -n "${PROOT_TMP_DIR:-}${TERMUX_VERSION:-}" ]]; then
     if ! command -v termux-tts-speak >/dev/null 2>&1 && ! command -v espeak-ng >/dev/null 2>&1 && ! command -v spd-say >/dev/null 2>&1; then

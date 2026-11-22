@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -87,7 +88,20 @@ describe('shared/store helpers', () => {
       const saved = JSON.parse(fs.readFileSync(settingsFile, 'utf8'))
       assert.equal(saved.model, 'Gemini 4 Carbon (High)')
       assert.equal(saved.statusLine.stack_with_default, true)
-      assert.match(saved.statusLine.command, /better-statusline\.mjs$/)
+      assert.match(saved.statusLine.command, /better-statusline(?:\.mjs)?$/)
+
+      // Verify tm-hook session-start never downgrades native binary back to Node JS
+      if (res.native) {
+        const tmHook = path.join(REPO_ROOT, 'plugins', 'time-machine', 'scripts', 'tm-hook.mjs')
+        const hookRes = spawnSync(process.execPath, [tmHook, 'session-start'], {
+          env: process.env,
+          input: '{}',
+          encoding: 'utf8'
+        })
+        assert.equal(hookRes.status, 0)
+        const afterHook = JSON.parse(fs.readFileSync(settingsFile, 'utf8'))
+        assert.equal(afterHook.statusLine.command, saved.statusLine.command)
+      }
     })
   })
 })
@@ -132,6 +146,40 @@ describe('scripts/better-statusline.mjs', () => {
 
       const narrow = formatStatusLine({ ...payload, terminal_width: 55 }, { nowMs: 16_000 })
       assert.ok(visibleWidth(narrow) <= 53)
+
+      // Verify optional native C11 accelerator compiles cleanly and matches JS output byte-for-byte
+      const resNative = ensureStatusLineInstalled(path.join(REPO_ROOT, 'scripts', 'better-statusline.mjs'), {
+        force: true,
+        preferNative: true
+      })
+      if (resNative.native) {
+        writeState('turn-flags/conv-1.json', { thinkHard: true, useHydrogen: true })
+        enableFakePlugins(tmp, ['think-hard', 'use-hydrogen'])
+        for (const width of [150, 120, 85, 55]) {
+          const testPayload = { ...payload, terminal_width: width }
+          const jsOut = formatStatusLine(testPayload, { nowMs: 16_000 })
+          const cProc = spawnSync(resNative.targetScript, [], {
+            env: { ...process.env, BETTER_AGY_NOW_MS: '16000' },
+            input: JSON.stringify(testPayload),
+            encoding: 'utf8'
+          })
+          assert.equal(cProc.status, 0, cProc.stderr)
+          assert.equal(cProc.stdout.replace(/\n$/, ''), jsOut, `C11 vs JS mismatch at width=${width}`)
+        }
+
+        // Also verify quota-cache.json countdown & expiration parity when live payload omits quota
+        const noQuotaPayload = { ...payload, quota: undefined, terminal_width: 120 }
+        for (const futureNow of [16_000 + 600_000, 16_000 + 9_000_000]) {
+          const jsCached = formatStatusLine(noQuotaPayload, { nowMs: futureNow })
+          const cCached = spawnSync(resNative.targetScript, [], {
+            env: { ...process.env, BETTER_AGY_NOW_MS: String(futureNow) },
+            input: JSON.stringify(noQuotaPayload),
+            encoding: 'utf8'
+          })
+          assert.equal(cCached.status, 0, cCached.stderr)
+          assert.equal(cCached.stdout.replace(/\n$/, ''), jsCached, `Cached quota C11 vs JS mismatch at t=${futureNow}`)
+        }
+      }
     })
   })
 

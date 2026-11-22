@@ -2,9 +2,8 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { spawnSync } from 'node:child_process'
 import { getPluginConfig, setPluginConfig } from './lib/store.mjs'
-import { PREVIEWABLE_MEDIA_EXTS, renderImageCard } from './lib/pixels.mjs'
+import { PREVIEWABLE_MEDIA_EXTS, formatBytes, openInSystemViewer, renderImageCard } from './lib/pixels.mjs'
 import { summarizeTranscript } from './lib/transcript.mjs'
 import { excerptOf, languageOf, lineOf, pathsIn, renderColoredExcerpt, resolvePath } from './core/peek-engine.mjs'
 
@@ -14,12 +13,6 @@ const args = []
 for (let i = 0; i < raw.length; i++) {
   if (raw[i] === '--cwd' && raw[i + 1]) cwd = path.resolve(raw[++i])
   else args.push(raw[i])
-}
-
-function formatBytes (b) {
-  if (b < 1024) return `${b} B`
-  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`
-  return `${(b / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function formatAge (mtimeMs) {
@@ -32,37 +25,13 @@ function formatAge (mtimeMs) {
   return `${Math.round(hr / 24)}d ago`
 }
 
-function openTarget (filePath) {
-  const termuxOpen = '/data/data/com.termux/files/usr/bin/termux-open'
-  if (fs.existsSync(termuxOpen)) {
-    spawnSync(termuxOpen, [filePath], { stdio: 'ignore' })
-    return 'termux-open'
-  }
-  if (os.platform() === 'darwin') {
-    spawnSync('open', ['-R', filePath], { stdio: 'ignore' })
-    return 'Finder (open -R)'
-  }
-  if (os.platform() === 'win32' || process.env.WSL_DISTRO_NAME) {
-    let wp = filePath
-    if (process.env.WSL_DISTRO_NAME) {
-      const r = spawnSync('wslpath', ['-w', filePath], { encoding: 'utf8' })
-      if (r.status === 0 && r.stdout.trim()) wp = r.stdout.trim()
-    }
-    const bin = process.env.WSL_DISTRO_NAME ? 'explorer.exe' : 'explorer'
-    spawnSync(bin, [`/select,${wp}`], { stdio: 'ignore' })
-    return bin
-  }
-  spawnSync('xdg-open', [fs.statSync(filePath).isDirectory() ? filePath : path.dirname(filePath)], { stdio: 'ignore' })
-  return 'xdg-open'
-}
-
 export function previewOne (rawTarget, baseCwd) {
   const line = lineOf(rawTarget)
   const cleanTarget = rawTarget.replace(/:\d+(?::\d+)?$/, '')
   const resolved = resolvePath(cleanTarget, baseCwd)
-  if (!resolved || !fs.existsSync(resolved)) return null
-
-  const stat = fs.statSync(resolved)
+  if (!resolved) return null
+  const stat = fs.statSync(resolved, { throwIfNoEntry: false })
+  if (!stat) return null
   const age = formatAge(stat.mtimeMs)
   if (stat.isDirectory()) {
     const entries = fs.readdirSync(resolved).slice(0, 12)
@@ -99,15 +68,17 @@ export function previewOne (rawTarget, baseCwd) {
 function findLatestTranscript () {
   const brainDir = path.join(os.homedir(), '.gemini', 'antigravity-cli', 'brain')
   if (!fs.existsSync(brainDir)) return null
-  const candidates = []
+  let bestPath = null
+  let bestMtime = -1
   for (const d of fs.readdirSync(brainDir)) {
     const t = path.join(brainDir, d, '.system_generated', 'logs', 'transcript.jsonl')
-    if (fs.existsSync(t)) {
-      candidates.push({ t, mtime: fs.statSync(t).mtimeMs })
+    const st = fs.statSync(t, { throwIfNoEntry: false })
+    if (st && st.mtimeMs > bestMtime) {
+      bestMtime = st.mtimeMs
+      bestPath = t
     }
   }
-  candidates.sort((a, b) => b.mtime - a.mtime)
-  return candidates[0]?.t || null
+  return bestPath
 }
 
 const [sub = 'scan', arg1 = ''] = args
@@ -134,8 +105,8 @@ if (sub === 'open') {
     console.error(`Quick Peek: path not found: ${arg1}`)
     process.exit(1)
   }
-  const tool = openTarget(resolved)
-  console.log(`Quick Peek: revealed ${resolved} via ${tool}.`)
+  const res = openInSystemViewer(resolved, { revealOnly: true })
+  console.log(`Quick Peek: revealed ${resolved} via ${res.tool}.`)
   process.exit(0)
 }
 

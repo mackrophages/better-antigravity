@@ -210,6 +210,26 @@ describe('Narrator, Image Preview, Quick Peek, Think Hard, Use Hydrogen, and Com
     assert.ok(rendered.lines.length >= 1)
     assert.match(rendered.lines[0], /\x1b\[38;2;/)
 
+    // Also verify 32-bit BI_BITFIELDS BMP with 0xffffffff mask never loops infinitely
+    const bf = Buffer.alloc(70 + 4)
+    bf.write('BM', 0)
+    bf.writeUInt32LE(74, 2)
+    bf.writeUInt32LE(70, 10)
+    bf.writeUInt32LE(56, 14)
+    bf.writeInt32LE(1, 18)
+    bf.writeInt32LE(1, 22)
+    bf.writeUInt16LE(1, 26)
+    bf.writeUInt16LE(32, 28)
+    bf.writeUInt32LE(3, 30) // BI_BITFIELDS
+    bf.writeUInt32LE(0xffffffff, 54)
+    bf.writeUInt32LE(0x00ff00, 58)
+    bf.writeUInt32LE(0x0000ff, 62)
+    bf.writeUInt32LE(0xff000000, 66)
+    bf.writeUInt32LE(0xff112233, 70)
+    const px32 = parseBmp(new Uint8Array(bf))
+    assert.equal(px32.width, 1)
+    assert.equal(px32.height, 1)
+
     // Real SVG preview via image-preview-cli AND quick-peek-cli
     const svgOut = runNode('plugins/image-preview/scripts/image-preview-cli.mjs', ['plugins/commit/assets/logo.svg'])
     assert.match(svgOut, /logo\.svg · SVG · 128x128/)
@@ -287,11 +307,19 @@ describe('Narrator, Image Preview, Quick Peek, Think Hard, Use Hydrogen, and Com
       assert.match(runOut, /Answered by gemini-4-hydrogen-high \(2\.4s · ↓ 18 tokens\)/)
 
       spawnSync('git', ['init', '-b', 'main'], { cwd: repo })
+      spawnSync('git', ['config', 'user.email', 'test@example.com'], { cwd: repo })
+      spawnSync('git', ['config', 'user.name', 'Test'], { cwd: repo })
+      fs.writeFileSync(path.join(repo, '.env.local'), 'OLD=1\n')
+      spawnSync('git', ['add', '.env.local'], { cwd: repo })
+      spawnSync('git', ['commit', '-m', 'chore: init'], { cwd: repo })
+      // Modify tracked .env.local WITHOUT staging (" M .env.local") + untracked .env.production
+      fs.writeFileSync(path.join(repo, '.env.local'), 'OLD=2\n')
       fs.writeFileSync(path.join(repo, '.env.production'), 'API_KEY=123\n')
       fs.writeFileSync(path.join(repo, 'index.js'), 'console.log(1)\n')
       const commitCtx = JSON.parse(runNode('plugins/commit/scripts/commit-context.mjs', [], { cwd: repo, env }))
       assert.equal(commitCtx.isGitRepo, true)
-      assert.deepEqual(commitCtx.secretCandidates, ['.env.production'])
+      assert.deepEqual(commitCtx.secretCandidates.sort(), ['.env.local', '.env.production'])
+      assert.equal(commitCtx.files.find(f => f.path === '.env.local')?.status, ' M')
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true })
     }

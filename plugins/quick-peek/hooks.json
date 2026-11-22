@@ -3,7 +3,7 @@
     "PostInvocation": [
       {
         "type": "command",
-        "command": "node ./scripts/peek-hook.mjs",
+        "command": "./scripts/lib/hook-gate.sh quick-peek-post",
         "timeout": 10
       }
     ]

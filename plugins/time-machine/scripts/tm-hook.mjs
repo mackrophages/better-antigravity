@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Antigravity lifecycle hooks for Time Machine:
-// - session-start: installs statusLine + prunes old refs/time-machine/* snapshots
-// - pre-tool: snapshots pre-turn working tree before the first mutating tool call
-// - stop: commits changed working tree as a new state under refs/time-machine/<session>/<id>
-// - pre-invocation: informs model once if user rewound files with /timeline
+// - Uniform safeSid sanitization across state files and Git refs
+// - Atomic lockfile around pre-tool snapshot creation to prevent parallel index.lock collisions
+// - Cleans up stale pending flags on new turn start (invocationNum === 0) if a prior turn aborted
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -13,13 +13,10 @@ import {
   readStdinJson,
   readState,
   repoKey,
+  stateRoot,
   writeState
 } from './lib/store.mjs'
-import { cleanUserRequest } from './lib/transcript.mjs'
-import { REF_ROOT, changes, keep, locate, nodeRun, prune, treeOf } from './core/git.mjs'
 import { mayWrite } from './core/tools.mjs'
-import { nextId } from './core/states.mjs'
-import { shorten, summary } from './core/format.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const event = process.argv[2] || ''
@@ -28,18 +25,68 @@ if (isSubcall()) {
   process.stdout.write(event === 'pre-tool' ? '{"decision":"allow"}\n' : '{}\n')
   process.exit(0)
 }
+
 const payload = await readStdinJson()
 const cwd = payload.cwd || payload.workspacePaths?.[0] || process.cwd()
-const sid = payload.conversationId || 'default'
+const safeSid = String(payload.conversationId || 'default').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 36) || 'default'
 
-function stateFile (topDir, session) {
-  return `time-machine/${repoKey(topDir)}/${session}.json`
+function stateFile (topDir) {
+  return `time-machine/${repoKey(topDir)}/${safeSid}.json`
+}
+
+function pendingFlagPath () {
+  return path.join(stateRoot(), 'time-machine', `pending-${safeSid}.flag`)
+}
+
+function lockFilePath () {
+  return path.join(stateRoot(), 'time-machine', `pending-${safeSid}.lock`)
+}
+
+function tryAcquireLock (lockPath) {
+  fs.mkdirSync(path.dirname(lockPath), { recursive: true })
+  try {
+    const fd = fs.openSync(lockPath, 'wx')
+    fs.writeSync(fd, `${process.pid}\n`)
+    fs.closeSync(fd)
+    return true
+  } catch {
+    try {
+      const st = fs.statSync(lockPath, { throwIfNoEntry: false })
+      if (st && Date.now() - st.mtimeMs > 30_000) {
+        fs.rmSync(lockPath, { force: true })
+        const fd = fs.openSync(lockPath, 'wx')
+        fs.writeSync(fd, `${process.pid}\n`)
+        fs.closeSync(fd)
+        return true
+      }
+    } catch {}
+    return false
+  }
+}
+
+function hasAnyJumpedNotice () {
+  const tmRoot = path.join(stateRoot(), 'time-machine')
+  if (!fs.existsSync(tmRoot)) return false
+  try {
+    for (const dir of fs.readdirSync(tmRoot, { withFileTypes: true })) {
+      if (!dir.isDirectory()) continue
+      const candidate = path.join(tmRoot, dir.name, `${safeSid}.json`)
+      if (fs.existsSync(candidate)) {
+        const raw = fs.readFileSync(candidate, 'utf8')
+        if (raw.includes('"jumpedNoticePending": true') || raw.includes('"jumpedNoticePending":true')) {
+          return true
+        }
+      }
+    }
+  } catch {}
+  return false
 }
 
 if (event === 'session-start') {
-  try { ensureStatusLineInstalled(path.join(here, 'lib', 'better-statusline.mjs')) } catch {}
+  try { ensureStatusLineInstalled(path.join(here, 'lib', 'better-statusline.mjs'), { preferNative: true }) } catch {}
   try {
-    const repo = await locate(nodeRun, cwd, sid)
+    const { locate, nodeRun, prune } = await import('./core/git.mjs')
+    const repo = await locate(nodeRun, cwd, safeSid)
     if (repo) {
       const cfg = getPluginConfig('time-machine', { keepDays: 7 })
       const days = Number(cfg.keepDays) > 0 ? Number(cfg.keepDays) : 7
@@ -51,28 +98,46 @@ if (event === 'session-start') {
 }
 
 if (event === 'pre-tool') {
+  const flag = pendingFlagPath()
+  if (fs.existsSync(flag)) {
+    process.stdout.write('{"decision":"allow"}\n')
+    process.exit(0)
+  }
   const toolName = payload?.toolCall?.name || ''
   const toolArgs = payload?.toolCall?.args || {}
   if (mayWrite(toolName, toolArgs)) {
-    try {
-      const repo = await locate(nodeRun, cwd, sid)
-      if (repo) {
-        const sFile = stateFile(repo.top, sid)
-        const data = readState(sFile, { sessionId: sid, repoTop: repo.top, states: [], cursor: null, jumpedFrom: null })
-        if (!data.pendingTurn) {
-          const pre = await treeOf(nodeRun, repo)
-          data.pendingTurn = {
-            tree: pre.tree,
-            head: pre.head,
-            prompt: cleanUserRequest(String(payload.lastUserInput || '')),
-            startedAt: Date.now()
+    const lock = lockFilePath()
+    if (tryAcquireLock(lock)) {
+      try {
+        if (!fs.existsSync(flag)) {
+          const [{ locate, nodeRun, treeOf }, { cleanUserRequest }] = await Promise.all([
+            import('./core/git.mjs'),
+            import('./lib/transcript.mjs')
+          ])
+          const repo = await locate(nodeRun, cwd, safeSid)
+          if (repo) {
+            const sFile = stateFile(repo.top)
+            const data = readState(sFile, { sessionId: safeSid, repoTop: repo.top, states: [], cursor: null, jumpedFrom: null })
+            if (!data.pendingTurn) {
+              const pre = await treeOf(nodeRun, repo)
+              data.pendingTurn = {
+                tree: pre.tree,
+                head: pre.head,
+                prompt: cleanUserRequest(String(payload.lastUserInput || '')),
+                startedAt: Date.now()
+              }
+              writeState(sFile, data)
+            }
+            fs.mkdirSync(path.dirname(flag), { recursive: true })
+            fs.writeFileSync(flag, repo.top)
           }
-          writeState(sFile, data)
         }
+      } catch {} finally {
+        try { fs.rmSync(lock, { force: true }) } catch {}
       }
-    } catch {}
+    }
   }
-  process.stdout.write(JSON.stringify({ decision: 'allow' }) + '\n')
+  process.stdout.write('{"decision":"allow"}\n')
   process.exit(0)
 }
 
@@ -81,10 +146,22 @@ if (event === 'stop') {
     process.stdout.write('{}\n')
     process.exit(0)
   }
+  const flag = pendingFlagPath()
   try {
-    const repo = await locate(nodeRun, cwd, sid)
+    const [
+      { REF_ROOT, changes, keep, locate, nodeRun, treeOf },
+      { nextId },
+      { shorten },
+      { cleanUserRequest }
+    ] = await Promise.all([
+      import('./core/git.mjs'),
+      import('./core/states.mjs'),
+      import('./core/format.mjs'),
+      import('./lib/transcript.mjs')
+    ])
+    const repo = await locate(nodeRun, cwd, safeSid)
     if (repo) {
-      const sFile = stateFile(repo.top, sid)
+      const sFile = stateFile(repo.top)
       const data = readState(sFile, null)
       if (data?.pendingTurn) {
         const start = data.pendingTurn
@@ -101,7 +178,7 @@ if (event === 'stop') {
               nodeRun,
               repo,
               { tree: start.tree, head: start.head },
-              `${REF_ROOT}/${sid}/${baseId}`,
+              `${REF_ROOT}/${safeSid}/${baseId}`,
               baseLabel
             )
             parentState = {
@@ -121,8 +198,10 @@ if (event === 'stop') {
           const id = nextId(data.states)
           const rawPrompt = start.prompt || cleanUserRequest(String(payload.lastUserInput || '')) || `turn #${id}`
           const label = shorten(rawPrompt, 60)
-          const commit = await keep(nodeRun, repo, post, `${REF_ROOT}/${sid}/${id}`, label)
-          const files = await changes(nodeRun, repo, parentState.tree, post.tree)
+          const [commit, files] = await Promise.all([
+            keep(nodeRun, repo, post, `${REF_ROOT}/${safeSid}/${id}`, label),
+            changes(nodeRun, repo, parentState.tree, post.tree)
+          ])
 
           data.states.push({
             id,
@@ -137,12 +216,14 @@ if (event === 'stop') {
           })
           data.cursor = id
           data.lastAgentTree = post.tree
-          writeState(path.join('time-machine', repoKey(repo.top), 'latest.json'), { sessionId: sid, updatedAt: now })
+          writeState(path.join('time-machine', repoKey(repo.top), 'latest.json'), { sessionId: safeSid, updatedAt: now })
         }
         writeState(sFile, data)
       }
     }
-  } catch {}
+  } catch {} finally {
+    try { fs.rmSync(flag, { force: true }) } catch {}
+  }
   process.stdout.write('{}\n')
   process.exit(0)
 }
@@ -153,14 +234,32 @@ if (event === 'pre-invocation') {
     process.stdout.write('{}\n')
     process.exit(0)
   }
+  const flag = pendingFlagPath()
+  const hadStaleFlag = fs.existsSync(flag)
+  if (hadStaleFlag) {
+    try { fs.rmSync(flag, { force: true }) } catch {}
+  }
+  const jumped = hasAnyJumpedNotice()
+  if (!jumped && !hadStaleFlag) {
+    process.stdout.write('{}\n')
+    process.exit(0)
+  }
   try {
-    const repo = await locate(nodeRun, cwd, sid)
+    const [{ changes, locate, nodeRun, treeOf }, { summary }] = await Promise.all([
+      import('./core/git.mjs'),
+      import('./core/format.mjs')
+    ])
+    const repo = await locate(nodeRun, cwd, safeSid)
     if (repo) {
-      const sFile = stateFile(repo.top, sid)
+      const sFile = stateFile(repo.top)
       const data = readState(sFile, null)
-      if (data?.lastAgentTree) {
+      if (data?.pendingTurn) {
+        delete data.pendingTurn
+        writeState(sFile, data)
+      }
+      if (data?.lastAgentTree && data.jumpedNoticePending) {
         const cur = await treeOf(nodeRun, repo)
-        if (cur.tree !== data.lastAgentTree && data.jumpedNoticePending) {
+        if (cur.tree !== data.lastAgentTree) {
           const moved = await changes(nodeRun, repo, data.lastAgentTree, cur.tree)
           data.lastAgentTree = cur.tree
           data.jumpedNoticePending = false
@@ -173,6 +272,9 @@ if (event === 'pre-invocation') {
             }) + '\n')
             process.exit(0)
           }
+        } else {
+          data.jumpedNoticePending = false
+          writeState(sFile, data)
         }
       }
     }

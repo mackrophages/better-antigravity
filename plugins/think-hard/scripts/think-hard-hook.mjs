@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-import { isHeadless, isSubcall, readStdinJson, updateState } from './lib/store.mjs'
+import fs from 'node:fs'
+import path from 'node:path'
+import { isHeadless, isSubcall, readStdinJson, stateRoot, writeState } from './lib/store.mjs'
 import { cleanUserRequest } from './lib/transcript.mjs'
 
 if (isSubcall()) {
@@ -9,31 +11,34 @@ if (isSubcall()) {
 
 const mode = process.argv[2] || 'pre'
 const payload = await readStdinJson()
-const sid = payload.conversationId
+const safeSid = String(payload.conversationId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64)
+const flagRel = safeSid ? `turn-flags/think-hard-${safeSid}.json` : ''
+const flagAbs = flagRel ? path.join(stateRoot(), flagRel) : ''
+
+function clearFlag () {
+  if (flagAbs) {
+    try { fs.rmSync(flagAbs, { force: true }) } catch {}
+  }
+}
 
 if (mode === 'stop') {
-  if (sid) {
-    updateState(`turn-flags/${sid}.json`, {}, prev => ({ ...prev, thinkHard: false }))
-  }
+  clearFlag()
   process.stdout.write('{}\n')
   process.exit(0)
 }
 
-// PreInvocation: only fire on the initial invocation of a user turn (invocationNum === 0)
 const input = cleanUserRequest(String(payload.lastUserInput || ''))
 const isMarked = input.startsWith('+') && !input.startsWith('++') && input.slice(1).trim().length > 0
 const isFirstStep = payload.invocationNum === undefined || payload.invocationNum === 0
 
 if (!isMarked || !isFirstStep) {
-  if (sid && isFirstStep) {
-    updateState(`turn-flags/${sid}.json`, {}, prev => ({ ...prev, thinkHard: false }))
-  }
+  if (isFirstStep) clearFlag()
   process.stdout.write('{}\n')
   process.exit(0)
 }
 
-if (sid) {
-  updateState(`turn-flags/${sid}.json`, {}, prev => ({ ...prev, thinkHard: true }))
+if (flagRel) {
+  writeState(flagRel, { thinkHard: true })
 }
 
 const cleanTask = input.slice(1).trimStart()

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // PreInvocation hook: emits a one-time user_markdown alert (zero model tokens)
-// when the session's estimated context window crosses dangerAt (default 75%).
+// when the session's context window crosses dangerAt (default 75%) using an O(1) tail read.
 import {
   getPluginConfig,
   isHeadless,
@@ -9,15 +9,23 @@ import {
   readState,
   writeState
 } from './lib/store.mjs'
-import { summarizeTranscript } from './lib/transcript.mjs'
+import { readLatestUsageTail } from './lib/transcript.mjs'
 
-if (isSubcall()) {
+if (isSubcall() || isHeadless()) {
   process.stdout.write('{}\n')
   process.exit(0)
 }
 
 const payload = await readStdinJson()
-if (isHeadless() || !payload.conversationId || !payload.transcriptPath) {
+const safeSid = String(payload.conversationId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64)
+if (!safeSid || !payload.transcriptPath) {
+  process.stdout.write('{}\n')
+  process.exit(0)
+}
+
+const alertPath = `context-alerts/${safeSid}.json`
+const prev = readState(alertPath, { alertedDanger: false })
+if (prev.alertedDanger) {
   process.stdout.write('{}\n')
   process.exit(0)
 }
@@ -28,15 +36,12 @@ if (cfg.inlineAlert === false) {
   process.exit(0)
 }
 
-const summary = summarizeTranscript(payload.transcriptPath)
-const lastIn = summary.tokens.last?.input || 0
+const latest = readLatestUsageTail(payload.transcriptPath)
+const lastIn = latest?.input || 0
 const windowLimit = Number(cfg.windowTokens) > 0 ? Number(cfg.windowTokens) : 200_000
 const pct = (lastIn / windowLimit) * 100
 
-const alertPath = `context-alerts/${payload.conversationId}.json`
-const prev = readState(alertPath, { alertedDanger: false })
-
-if (pct >= cfg.dangerAt && !prev.alertedDanger) {
+if (pct >= cfg.dangerAt) {
   writeState(alertPath, { alertedDanger: true, atPct: Math.round(pct) })
   process.stdout.write(JSON.stringify({
     injectSteps: [

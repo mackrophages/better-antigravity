@@ -1,0 +1,9 @@
+=== Better Antigravity Gemba Benchmark ===
+  statusLine_p50_ms              p50=  113.1 ms   p95= 124.12 ms   mean= 109.09 ms
+  preInvocation_5hooks_ms        p50= 605.03 ms   p95= 625.17 ms   mean= 601.97 ms
+  postInvocation_quickPeek_ms    p50= 110.65 ms   p95= 113.02 ms   mean=  109.5 ms
+  stop_tokenMeter_1_6MB_ms       p50= 133.35 ms   p95= 139.73 ms   mean= 132.39 ms
+  timeMachine_4tools_turn_ms     p50= 1533.9 ms   p95=   1555 ms   mean=1506.97 ms
+  imagePreview_svg_ms            p50= 583.83 ms   p95= 607.61 ms   mean= 579.31 ms
+  validateAll_11plugins_ms       p50=3171.88 ms   p95=3171.88 ms   mean=3134.47 ms
+  web_index_kb                   raw=228.6 KB   gzip=59.1 KB

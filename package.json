@@ -16,6 +16,7 @@
   "scripts": {
     "sync": "node scripts/sync-shared.mjs",
     "test": "node --test \"test/*.test.mjs\"",
+    "bench": "node scripts/bench.mjs",
     "validate": "node scripts/validate-all.mjs",
     "install:all": "bash install.sh --all",
     "uninstall:all": "bash install.sh --uninstall"

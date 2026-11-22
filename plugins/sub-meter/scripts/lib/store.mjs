@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { spawnSync } from 'node:child_process'
 
 export function homeDir () {
   return process.env.BETTER_AGY_TEST_HOME || os.homedir()
@@ -148,17 +149,54 @@ export function visibleWidth (str) {
   return [...plain].length
 }
 
+function tryBuildNativeStatusLine (sourceScriptPath, targetBin) {
+  if (process.env.BETTER_AGY_DISABLE_NATIVE === '1' || process.platform === 'win32') return false
+  const dir = path.dirname(sourceScriptPath)
+  const candidates = [
+    path.join(dir, 'better-statusline.c'),
+    path.resolve(dir, '..', 'shared', 'better-statusline.c')
+  ]
+  const srcC = candidates.find(p => fs.existsSync(p))
+  if (!srcC) return false
+
+  try {
+    const cStat = fs.statSync(srcC)
+    const bStat = fs.statSync(targetBin, { throwIfNoEntry: false })
+    if (bStat && bStat.mtimeMs >= cStat.mtimeMs && bStat.size > 0) {
+      return true
+    }
+  } catch {}
+
+  const tmpBin = `${targetBin}.tmp-${process.pid}`
+  for (const cc of ['gcc', 'cc', 'clang']) {
+    try {
+      const r = spawnSync(cc, ['-O3', srcC, '-o', tmpBin, '-lm'], { stdio: 'ignore', timeout: 15_000 })
+      if (r.status === 0 && fs.existsSync(tmpBin)) {
+        fs.chmodSync(tmpBin, 0o755)
+        fs.renameSync(tmpBin, targetBin)
+        return true
+      }
+    } catch {} finally {
+      try { fs.rmSync(tmpBin, { force: true }) } catch {}
+    }
+  }
+  return false
+}
+
 /**
- * Ensures ~/.gemini/antigravity-cli/better-statusline.mjs is up to date and wired
- * into settings.json (non-destructively, with backup).
+ * Ensures ~/.gemini/antigravity-cli/better-statusline(.mjs) is up to date and wired
+ * into settings.json (non-destructively, with backup). Defaults `preferNative = true`
+ * so SessionStart hooks never downgrade the ~6ms native C11 binary back to Node JS.
  */
-export function ensureStatusLineInstalled (sourceScriptPath, { force = false } = {}) {
+export function ensureStatusLineInstalled (sourceScriptPath, { force = false, preferNative = true } = {}) {
   if (isHeadless() && !force) return { installed: false, reason: 'headless' }
   if (!sourceScriptPath || !fs.existsSync(sourceScriptPath)) {
     return { installed: false, reason: 'missing-source' }
   }
-  const targetScript = path.join(homeDir(), '.gemini', 'antigravity-cli', 'better-statusline.mjs')
-  fs.mkdirSync(path.dirname(targetScript), { recursive: true })
+  const agyDir = path.join(homeDir(), '.gemini', 'antigravity-cli')
+  const targetScript = path.join(agyDir, 'better-statusline.mjs')
+  const targetBin = path.join(agyDir, 'better-statusline')
+  fs.mkdirSync(agyDir, { recursive: true })
 
   const srcContent = fs.readFileSync(sourceScriptPath, 'utf8')
   let dstContent = ''
@@ -170,12 +208,24 @@ export function ensureStatusLineInstalled (sourceScriptPath, { force = false } =
     fs.renameSync(tmp, targetScript)
   }
 
+  const hasNative = preferNative && tryBuildNativeStatusLine(sourceScriptPath, targetBin)
+  const quotedBin = targetBin.includes(' ') ? `"${targetBin}"` : targetBin
+  const quotedScript = targetScript.includes(' ') ? `"${targetScript}"` : targetScript
+  const desiredCmd = hasNative ? quotedBin : `node ${quotedScript}`
+
+  const writeReadyStamp = (kind) => {
+    try {
+      const stamp = path.join(stateRoot(), '.hud-ready')
+      fs.mkdirSync(path.dirname(stamp), { recursive: true })
+      fs.writeFileSync(stamp, `${kind}\n`, 'utf8')
+    } catch {}
+  }
+
   const settingsFile = agyCliSettingsPath()
   const settings = readJsonFile(settingsFile, {})
-  const desiredCmd = `node ${targetScript}`
   const existingCmd = settings?.statusLine?.command || ''
 
-  if (!existingCmd || existingCmd.includes('better-statusline.mjs') || force) {
+  if (!existingCmd || existingCmd.includes('better-statusline') || force) {
     if (existingCmd !== desiredCmd || settings?.statusLine?.enabled === false) {
       const bakFile = `${settingsFile}.bak-better-agy`
       if (fs.existsSync(settingsFile) && !fs.existsSync(bakFile)) {
@@ -191,10 +241,13 @@ export function ensureStatusLineInstalled (sourceScriptPath, { force = false } =
         }
       }
       writeJsonAtomic(settingsFile, nextSettings)
-      return { installed: true, updatedSettings: true, targetScript }
+      writeReadyStamp(hasNative ? 'native' : 'node')
+      return { installed: true, native: hasNative, updatedSettings: true, targetScript: hasNative ? targetBin : targetScript }
     }
-    return { installed: true, updatedSettings: false, targetScript }
+    writeReadyStamp(hasNative ? 'native' : 'node')
+    return { installed: true, native: hasNative, updatedSettings: false, targetScript: hasNative ? targetBin : targetScript }
   }
 
-  return { installed: true, updatedSettings: false, preservedCustom: existingCmd, targetScript }
+  writeReadyStamp('custom')
+  return { installed: true, native: hasNative, updatedSettings: false, preservedCustom: existingCmd, targetScript }
 }

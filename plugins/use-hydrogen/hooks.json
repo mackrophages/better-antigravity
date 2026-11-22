@@ -3,21 +3,21 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "node ./scripts/lib/ensure-hud.mjs",
+        "command": "./scripts/lib/hook-gate.sh ensure-hud",
         "timeout": 10
       }
     ],
     "PreInvocation": [
       {
         "type": "command",
-        "command": "node ./scripts/use-hydrogen-hook.mjs pre",
+        "command": "./scripts/lib/hook-gate.sh use-hydrogen-pre",
         "timeout": 10
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "node ./scripts/use-hydrogen-hook.mjs stop",
+        "command": "./scripts/lib/hook-gate.sh use-hydrogen-stop",
         "timeout": 10
       }
     ]

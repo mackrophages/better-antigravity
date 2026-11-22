@@ -3,6 +3,7 @@
 // crisp 128x128 square SVG icons so every plugin in plugins/* is 100% standalone.
 import fs from 'node:fs'
 import path from 'node:path'
+import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -12,7 +13,9 @@ const PLUGINS_DIR = path.join(ROOT, 'plugins')
 const SHARED_FILES = [
   'store.mjs',
   'better-statusline.mjs',
+  'better-statusline.c',
   'ensure-hud.mjs',
+  'hook-gate.sh',
   'transcript.mjs',
   'pixels.mjs'
 ]
@@ -55,7 +58,7 @@ for (const name of entries) {
     const dst = path.join(libDir, file)
     if (fs.existsSync(src)) {
       fs.copyFileSync(src, dst)
-      if (file.endsWith('.mjs')) fs.chmodSync(dst, 0o755)
+      if (file.endsWith('.mjs') || file.endsWith('.sh')) fs.chmodSync(dst, 0o755)
     }
   }
 
@@ -76,6 +79,27 @@ for (const name of entries) {
   const logoPath = path.join(assetsDir, 'logo.svg')
   if (ICONS[name]) {
     fs.writeFileSync(logoPath, makeSvg(ICONS[name]), 'utf8')
+  }
+}
+
+// Keep scripts/better-statusline.mjs synced with shared/better-statusline.mjs so they never drift
+const sharedSl = path.join(SHARED_DIR, 'better-statusline.mjs')
+const scriptsSl = path.join(ROOT, 'scripts', 'better-statusline.mjs')
+if (fs.existsSync(sharedSl)) {
+  fs.copyFileSync(sharedSl, scriptsSl)
+  fs.chmodSync(scriptsSl, 0o755)
+}
+
+// Also precompile local scripts/better-statusline (gitignored) when a C compiler exists
+const srcC = path.join(SHARED_DIR, 'better-statusline.c')
+const localBin = path.join(ROOT, 'scripts', 'better-statusline')
+if (fs.existsSync(srcC) && process.platform !== 'win32') {
+  for (const cc of ['gcc', 'cc', 'clang']) {
+    const r = spawnSync(cc, ['-O3', srcC, '-o', localBin, '-lm'], { stdio: 'ignore' })
+    if (r.status === 0) {
+      fs.chmodSync(localBin, 0o755)
+      break
+    }
   }
 }
 

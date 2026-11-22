@@ -1,4 +1,7 @@
 // Isolated git snapshot engine for Time Machine (adapted from DiegoMarty & midudev).
+// Optimized to halve subprocess spawns: single-call rev-parse, pure-FS index copy,
+// persistent disk seed stamp across hook invocations, and plumbing diff-tree.
+import fs from 'node:fs'
 import { spawn } from 'node:child_process'
 
 export const REF_ROOT = 'refs/time-machine'
@@ -28,7 +31,7 @@ export function nodeRun (argv, init = {}) {
     const proc = spawn(cmd, args, {
       cwd: init.cwd || process.cwd(),
       env: init.env ? { ...process.env, ...init.env } : process.env,
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: [init.stdin !== undefined ? 'pipe' : 'ignore', 'pipe', 'pipe']
     })
     let outLen = 0
     let truncated = false
@@ -63,13 +66,12 @@ export function nodeRun (argv, init = {}) {
       if (timer) clearTimeout(timer)
       resolve({
         exitCode: code ?? 1,
-        stdout: Buffer.concat(outChunks).toString('utf8'),
-        stderr: Buffer.concat(errChunks).toString('utf8'),
+        stdout: outChunks.length === 1 ? outChunks[0].toString('utf8') : Buffer.concat(outChunks).toString('utf8'),
+        stderr: errChunks.length === 0 ? '' : Buffer.concat(errChunks).toString('utf8'),
         isStdoutTruncated: truncated
       })
     })
     if (init.stdin !== undefined) proc.stdin.end(init.stdin)
-    else proc.stdin.end()
   })
 }
 
@@ -84,10 +86,12 @@ async function git (run, argv, init = {}) {
 
 export async function locate (run, cwd, session) {
   try {
-    const [top, gitDir] = await Promise.all([
-      git(run, ['rev-parse', '--show-toplevel'], { cwd }),
-      git(run, ['rev-parse', '--absolute-git-dir'], { cwd })
-    ])
+    // Single git rev-parse subprocess instead of two parallel spawns
+    const out = await git(run, ['rev-parse', '--show-toplevel', '--absolute-git-dir'], { cwd })
+    const nl = out.indexOf('\n')
+    if (nl === -1) return null
+    const top = out.slice(0, nl).trim()
+    const gitDir = out.slice(nl + 1).trim()
     const safeSession = String(session || 'default').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 36) || 'default'
     return { top, gitDir, index: `${gitDir}/time-machine-${safeSession}.index` }
   } catch {
@@ -100,8 +104,35 @@ function indexEnv (repo) {
   return { ...IDENTITY, GIT_INDEX_FILE: repo.index }
 }
 
-export function forget (index) { seededFrom.delete(index) }
-export function isSeeded (index) { return seededFrom.has(index) }
+function readSeedStamp (index) {
+  if (!fs.existsSync(index)) {
+    seededFrom.delete(index)
+    return undefined
+  }
+  if (seededFrom.has(index)) return seededFrom.get(index)
+  try {
+    const s = fs.readFileSync(`${index}.head`, 'utf8').trim()
+    if (s) {
+      seededFrom.set(index, s)
+      return s
+    }
+  } catch {}
+  return undefined
+}
+
+function writeSeedStamp (index, head) {
+  seededFrom.set(index, head)
+  try { fs.writeFileSync(`${index}.head`, `${head}\n`, 'utf8') } catch {}
+}
+
+export function forget (index) {
+  seededFrom.delete(index)
+  try { fs.rmSync(`${index}.head`, { force: true }) } catch {}
+}
+
+export function isSeeded (index) {
+  return readSeedStamp(index) !== undefined
+}
 
 async function headOf (run, repo) {
   const result = await run(['git', 'rev-parse', '-q', '--verify', 'HEAD'], { cwd: repo.top })
@@ -125,12 +156,16 @@ export async function treeOf (run, repo) {
   const init = { cwd: repo.top, env: indexEnv(repo) }
   const { index } = repo
   const head = await headOf(run, repo)
-  if (head !== null && seededFrom.get(index) !== head) {
-    if (!seededFrom.has(index)) {
-      await run(['cp', '-n', `${repo.gitDir}/index`, index], { cwd: repo.top }).catch(() => undefined)
+  const prevSeed = readSeedStamp(index)
+  if (head !== null && prevSeed !== head) {
+    if (prevSeed === undefined && !fs.existsSync(index)) {
+      const mainIdx = `${repo.gitDir}/index`
+      if (fs.existsSync(mainIdx)) {
+        try { fs.copyFileSync(mainIdx, index, fs.constants.COPYFILE_EXCL) } catch {}
+      }
     }
     await git(run, ['read-tree', '-m', 'HEAD'], init).catch(() => git(run, ['read-tree', 'HEAD'], init))
-    seededFrom.set(index, head)
+    writeSeedStamp(index, head)
   }
   await git(run, ['add', '-A', '--', '.'], init)
   await untrackIgnored(run, repo, head, init)
@@ -166,8 +201,8 @@ async function every (run, repo, argv, { stdin, okCodes = [0] } = {}) {
 export async function changes (run, repo, a, b) {
   if (!a || !b || a === b) return []
   const [numstat, status] = await Promise.all([
-    whole(run, repo, ['diff', '--numstat', '--no-renames', '-z', a, b]),
-    whole(run, repo, ['diff', '--name-status', '--no-renames', '-z', a, b])
+    whole(run, repo, ['diff-tree', '-r', '--numstat', '--no-renames', '-z', a, b]),
+    whole(run, repo, ['diff-tree', '-r', '--name-status', '--no-renames', '-z', a, b])
   ])
   const statusOf = new Map()
   const parts = status.split('\0').filter(Boolean)
@@ -189,7 +224,7 @@ export async function changes (run, repo, a, b) {
 
 export async function move (run, repo, from, to) {
   if (from === to) return []
-  const added = await every(run, repo, ['diff', '--name-only', '--diff-filter=A', '--no-renames', '-z', from, to])
+  const added = await every(run, repo, ['diff-tree', '-r', '--name-only', '--diff-filter=A', '--no-renames', '-z', from, to])
   if (added.length > 0) {
     const ignored = await every(run, repo, ['check-ignore', '-z', '--stdin'], { stdin: added.join('\0') + '\0', okCodes: [0, 1] })
     const blocked = []

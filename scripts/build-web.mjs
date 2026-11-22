@@ -93,14 +93,13 @@ function collectFiles (dir, prefix = '') {
 }
 
 const catalog = {}
+const svgById = {}
 for (const item of ORDER) {
   const pDir = path.join(PLUGINS_DIR, item.id)
   const files = collectFiles(pDir)
-  const svgRaw = files['assets/logo.svg'] || ''
+  svgById[item.id] = files['assets/logo.svg'] || ''
   catalog[item.id] = {
     title: item.title,
-    readme: files['README.md'] || '',
-    svg: svgRaw,
     files
   }
 }
@@ -109,7 +108,7 @@ const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace
 const inlineCode = (s) => escapeHtml(s).replace(/`([^`]+)`/g, '<code>$1</code>')
 
 const cardsHtml = ORDER.map((item) => {
-  const svgInline = (catalog[item.id].svg || '')
+  const svgInline = (svgById[item.id] || '')
     .replace(/width="128"\s+height="128"/, 'class="icon" aria-hidden="true"')
   return `      <li class="plugin" id="p-${item.id}">
         <div class="meta">
@@ -132,7 +131,7 @@ const picksHtml = ORDER.map(item =>
   `          <li><button type="button" class="pick" data-plugin="${item.id}" aria-pressed="true">${item.title}</button></li>`
 ).join('\n')
 
-const catalogJson = JSON.stringify(catalog).replace(/<\//g, '<\\/')
+const catalogJson = JSON.stringify(catalog).replace(/</g, '\\u003c')
 
 const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -272,6 +271,7 @@ const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
     .plugin {
       display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 24px;
       padding-top: 32px; border-top: 1px solid var(--line);
+      content-visibility: auto; contain-intrinsic-size: auto 240px;
     }
     @media (max-width: 640px) { .plugin { grid-template-columns: 1fr; gap: 14px; } }
     .meta .icon { width: 52px; height: 52px; display: block; margin-bottom: 10px; }
@@ -429,9 +429,8 @@ ${cardsHtml}
   <script>
     (() => {
       const CATALOG = ${catalogJson};
-      const HUD_PLUGINS = new Set(['sub-meter', 'context-meter', 'token-meter', 'narrator', 'time-machine', 'after', 'think-hard', 'use-hydrogen']);
       const GH_REPO = 'https://github.com/mackrophages/better-antigravity/tree/main/plugins';
-      const LOCAL_ROOT = '/root/better-antigravity';
+      const LOCAL_ROOT = '~/better-antigravity';
 
       const $ = (s, ctx = document) => ctx.querySelector(s);
       const $$ = (s, ctx = document) => [...ctx.querySelectorAll(s)];
@@ -546,6 +545,7 @@ ${cardsHtml}
       ];
       let wIdx = 0;
       setInterval(() => {
+        if (document.hidden) return;
         wIdx = (wIdx + 1) % WINDOWS.length;
         const w = WINDOWS[wIdx];
         const f = Math.round(w.pct / 10);
@@ -561,6 +561,7 @@ ${cardsHtml}
       ];
       let cIdx = 0;
       setInterval(() => {
+        if (document.hidden) return;
         cIdx = (cIdx + 1) % CTX.length;
         ctxEl.textContent = CTX[cIdx].t;
         ctxEl.className = CTX[cIdx].c;
@@ -623,7 +624,7 @@ ${cardsHtml}
         if (curTab === 'docs') {
           const pre = document.createElement('pre');
           pre.className = 'code-box';
-          pre.textContent = entry.readme;
+          pre.textContent = entry.files['README.md'] || '';
           readerBody.replaceChildren(pre);
           return;
         }
@@ -674,7 +675,20 @@ ${cardsHtml}
 </html>
 `
 
+function minifyCssBlock (doc) {
+  return doc.replace(/<style>([\s\S]*?)<\/style>/, (_, css) => {
+    const compact = css
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\s*\n\s*/g, '')
+      .replace(/\s*([{};,])\s*/g, '$1')
+      .replace(/:\s+/g, ':')
+      .replace(/;}/g, '}')
+    return `<style>${compact}</style>`
+  })
+}
+
 fs.mkdirSync(path.join(ROOT, 'web'), { recursive: true })
 const outPath = path.join(ROOT, 'web', 'index.html')
-fs.writeFileSync(outPath, html, 'utf8')
-console.log(`Built self-contained web/index.html (${(Buffer.byteLength(html) / 1024).toFixed(1)} KB)`)
+const finalHtml = minifyCssBlock(html)
+fs.writeFileSync(outPath, finalHtml, 'utf8')
+console.log(`Built self-contained web/index.html (${(Buffer.byteLength(finalHtml) / 1024).toFixed(1)} KB)`)
