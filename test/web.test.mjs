@@ -36,5 +36,10 @@ describe('web/index.html offline deliverable contract', () => {
     assert.ok(html.includes('&lt;tarea&gt;'), 'Angle brackets inside code spans must be HTML-escaped')
     assert.equal(html.includes('<code>/after <tarea>'), false, 'No unescaped <tarea> tag allowed')
     assert.match(html, /install\.sh /)
+
+    const wf = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'pages.yml'), 'utf8')
+    assert.match(wf, /needs:\s*build/, 'Pages deploy job must wait for build job completion')
+    assert.match(wf, /actions\/upload-pages-artifact@v[5-9]/, 'Must use upload-pages-artifact v5+')
+    assert.match(wf, /actions\/deploy-pages@v[5-9]/, 'Must use deploy-pages v5+')
   })
 })
