@@ -133,7 +133,7 @@ describe('scripts/better-statusline.mjs', () => {
         }
       }
 
-      const wide = formatStatusLine(payload, { nowMs: 16_000 })
+      const wide = formatStatusLine({ ...payload, agent_state: 'idle' }, { nowMs: 16_000 })
       assert.equal(wide.includes('38;5;208m'), false, 'Google Gemini bucket uses electric blue, not amber')
       assert.equal(wide.includes('38;5;75m'), true, 'Antigravity electric blue ANSI must color Gemini gem and quota bar')
       const plainWide = wide.replace(/\x1b\[[0-9;]*m/g, '')
@@ -141,9 +141,10 @@ describe('scripts/better-statusline.mjs', () => {
       assert.match(plainWide, /⏵ narrator on · ES/)
       assert.ok(visibleWidth(wide) <= 118)
 
-      // Verify 4-bucket rotation (4s default), ✻ Claude amber for 3p-*, and ❂ gray tones when active model is GPT
+      // Verify animated spinner sequences while working (`· ✢ ✳ ✶ ✻ ✽` for Claude, `· ✧ ✦ ◇ ◈ ❖` for Gemini, `· ∘ ○ ◎ ◉ ❂` for GPT)
       const mixedPayload = {
         ...payload,
+        agent_state: 'working',
         model: { id: 'Gemini 4 Carbon (High)', display_name: 'Gemini 4 Carbon (High)' },
         quota: {
           '3p-5h': { remaining_fraction: 0.8, reset_in_seconds: 14400 },
@@ -152,19 +153,26 @@ describe('scripts/better-statusline.mjs', () => {
           'gemini-weekly': { remaining_fraction: 0.69, reset_in_seconds: 273600 }
         }
       }
-      const rot0 = formatStatusLine(mixedPayload, { nowMs: 0 }) // index 0 -> 3p-5h (Claude amber ✻)
-      assert.equal(rot0.includes('38;5;208m'), true, '3p-5h defaults to Claude amber 38;5;208m')
-      assert.match(rot0.replace(/\x1b\[[0-9;]*m/g, ''), /✻ 5h ━━──────── 20% ↻ 4h 0m/)
+      const claudeFrames = ['·', '✢', '✳', '✶', '✻', '✽']
+      for (let f = 0; f < claudeFrames.length; f++) {
+        const out = formatStatusLine(mixedPayload, { nowMs: f * 300 }) // < 4000ms stays on bucket 0 (3p-5h)
+        assert.equal(out.includes('38;5;208m'), true)
+        assert.ok(out.replace(/\x1b\[[0-9;]*m/g, '').includes(`${claudeFrames[f]} 5h ━━──────── 20% ↻ 4h 0m`), `Missing Claude frame ${f}`)
+      }
 
-      const rot2 = formatStatusLine(mixedPayload, { nowMs: 8_000 }) // 8s / 4s = index 2 -> gemini-5h (Google blue ✦)
-      assert.equal(rot2.includes('38;5;75m'), true)
-      assert.match(rot2.replace(/\x1b\[[0-9;]*m/g, ''), /✦ 5h ━━━━━━──── 58% ↻ 2h 10m/)
+      const gemFrames = ['·', '✧', '✦', '◇', '◈', '❖']
+      for (let f = 0; f < gemFrames.length; f++) {
+        // Bucket 2 (gemini-5h) is active during [8000..11999]; 9000 / 300 = 30 (mod 10 == 0!)
+        const out = formatStatusLine(mixedPayload, { nowMs: 9_000 + f * 300 })
+        assert.equal(out.includes('38;5;75m'), true)
+        assert.ok(out.replace(/\x1b\[[0-9;]*m/g, '').includes(`${gemFrames[f]} 5h ━━━━━━──── 58% ↻ 2h 10m`), `Missing Gemini frame ${f}`)
+      }
 
       const gptMixed = {
         ...mixedPayload,
         model: { id: 'gpt-oss-120b-medium', display_name: 'GPT-OSS 120B (Medium)' }
       }
-      const rotGpt = formatStatusLine(gptMixed, { nowMs: 0 }) // 3p-5h switches to ❂ silver/slate gray tones
+      const rotGpt = formatStatusLine(gptMixed, { nowMs: 5 * 300 }) // frame 5 -> ❂
       assert.equal(rotGpt.includes('38;5;252m'), true, 'GPT icon uses bright silver')
       assert.equal(rotGpt.includes('38;5;247m'), true, 'GPT bar uses slate gray')
       assert.equal(rotGpt.includes('38;5;208m'), false, 'GPT mode does not use amber')
@@ -185,7 +193,13 @@ describe('scripts/better-statusline.mjs', () => {
         writeState('turn-flags/conv-1.json', { thinkHard: true, useHydrogen: true })
         enableFakePlugins(tmp, ['think-hard', 'use-hydrogen'])
         for (const width of [150, 120, 85, 55]) {
-          for (const [pCase, tNow] of [[payload, 16_000], [mixedPayload, 0], [mixedPayload, 8_000], [gptMixed, 0]]) {
+          for (const [pCase, tNow] of [
+            [{ ...payload, agent_state: 'idle' }, 16_000],
+            [mixedPayload, 300],
+            [mixedPayload, 1_500],
+            [mixedPayload, 9_600],
+            [gptMixed, 1_200]
+          ]) {
             const testPayload = { ...pCase, terminal_width: width }
             const jsOut = formatStatusLine(testPayload, { nowMs: tNow })
             const cProc = spawnSync(resNative.targetScript, [], {

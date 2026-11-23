@@ -6,11 +6,13 @@ Displays your live Antigravity model quota windows (Google Gemini and Third-Part
 ✦ 5h ━───────── 10% ↻ 3h 51m   |   ✻ 5h ────────── 0% ↻ 4h 56m
 ```
 
-## Family Icons & Color Identity
+## Animated Family Spinners & Color Identity
 
-- **`✦` Google Gemini (`gemini-5h`, `gemini-weekly`)**: Electric blue (`38;5;75m`) 4-point gem star and progress bar.
-- **`✻` Third-Party / Claude (`3p-5h`, `3p-weekly`, default)**: Classic Claude teardrop-spoked spark (`U+273B`) in warm amber (`38;5;208m`).
-- **`❂` Third-Party / GPT (`auto` when using a GPT model, or `/sub-meter theme gpt`)**: Silver/slate-gray monochrome tones (`38;5;252m` / `38;5;247m`).
+While the agent is active, each quota family breathes through a smooth 10-frame ping-pong animation (and rests on its signature emblem when `idle`):
+
+- **Google Gemini (`gemini-5h`, `gemini-weekly`)**: `· ✧ ✦ ◇ ◈ ❖` (rests on `✦`) in electric blue (`38;5;75m`).
+- **Third-Party / Claude (`3p-5h`, `3p-weekly`, default)**: `· ✢ ✳ ✶ ✻ ✽` (Claude Code's classic asterisk spinner, resting on `✻`) in warm amber (`38;5;208m`).
+- **Third-Party / GPT (`auto` when using a GPT model, or `/sub-meter theme gpt`)**: `· ∘ ○ ◎ ◉ ❂` (rests on `❂`) in silver/slate-gray monochrome tones (`38;5;252m` / `38;5;247m`).
 - **Alert Thresholds**: Yellow from 75%, red from 90%.
 
 ## Commands

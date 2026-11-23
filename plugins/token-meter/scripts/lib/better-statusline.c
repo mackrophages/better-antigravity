@@ -471,8 +471,31 @@ static int read_cached_quotas(const char *cr, QuotaBucket *out, int max_b, long 
   return nb;
 }
 
-static void fmt_quota_window(const QuotaBucket *w, int kind, bool with_bar, bool with_reset, char *out, size_t cap) {
-  const char *icon = (kind == KIND_CLAUDE) ? "\xe2\x9c\xbb" : ((kind == KIND_GPT) ? "\xe2\x9d\x82" : "\xe2\x9c\xa6");
+static const char *pick_family_icon(int kind, bool is_idle, long long now_ms) {
+  static const char *const seq_google[10] = {
+    "\xc2\xb7", "\xe2\x9c\xa7", "\xe2\x9c\xa6", "\xe2\x97\x87", "\xe2\x97\x88",
+    "\xe2\x9d\x96", "\xe2\x97\x88", "\xe2\x97\x87", "\xe2\x9c\xa6", "\xe2\x9c\xa7"
+  };
+  static const char *const seq_claude[10] = {
+    "\xc2\xb7", "\xe2\x9c\xa2", "\xe2\x9c\xb3", "\xe2\x9c\xb6", "\xe2\x9c\xbb",
+    "\xe2\x9c\xbd", "\xe2\x9c\xbb", "\xe2\x9c\xb6", "\xe2\x9c\xb3", "\xe2\x9c\xa2"
+  };
+  static const char *const seq_gpt[10] = {
+    "\xc2\xb7", "\xe2\x88\x98", "\xe2\x97\x8b", "\xe2\x97\x8e", "\xe2\x97\x89",
+    "\xe2\x9d\x82", "\xe2\x97\x89", "\xe2\x97\x8e", "\xe2\x97\x8b", "\xe2\x88\x98"
+  };
+  if (is_idle) {
+    return (kind == KIND_CLAUDE) ? "\xe2\x9c\xbb" : ((kind == KIND_GPT) ? "\xe2\x9d\x82" : "\xe2\x9c\xa6");
+  }
+  long long idx = (now_ms / 300LL) % 10LL;
+  if (idx < 0) idx += 10LL;
+  if (kind == KIND_CLAUDE) return seq_claude[idx];
+  if (kind == KIND_GPT) return seq_gpt[idx];
+  return seq_google[idx];
+}
+
+static void fmt_quota_window(const QuotaBucket *w, int kind, bool is_idle, long long now_ms, bool with_bar, bool with_reset, char *out, size_t cap) {
+  const char *icon = pick_family_icon(kind, is_idle, now_ms);
   const char *icol = (kind == KIND_CLAUDE) ? CLAUDE_AMBER : ((kind == KIND_GPT) ? GPT_SILVER : AGY_BLUE);
   const char *base_bcol = (kind == KIND_CLAUDE) ? CLAUDE_AMBER : ((kind == KIND_GPT) ? GPT_SLATE : AGY_BLUE);
   int pct = (int)floor(w->pct_used + 0.5);
@@ -807,14 +830,18 @@ int main(void) {
         for (int i = 0; i < nb; i++) chosen[nc++] = buckets[i];
       }
 
+      char astate_sm[32] = "";
+      json_read_str(json_get_prop(ps, pe, "agent_state"), pe, astate_sm, sizeof(astate_sm));
+      bool is_idle_sm = (strcmp(astate_sm, "idle") == 0);
+
       widgets[nw].full[0] = widgets[nw].compact[0] = widgets[nw].minimal[0] = '\0';
       for (int i = 0; i < nc; i++) {
         const char *bkey = chosen[i].id[0] ? chosen[i].id : chosen[i].label;
         int kind = resolve_bucket_kind(bkey, gpt_active, tp_theme);
         char pf[256], pc[128], pm[96];
-        fmt_quota_window(&chosen[i], kind, true, true, pf, sizeof(pf));
-        fmt_quota_window(&chosen[i], kind, false, true, pc, sizeof(pc));
-        fmt_quota_window(&chosen[i], kind, false, false, pm, sizeof(pm));
+        fmt_quota_window(&chosen[i], kind, is_idle_sm, now_ms, true, true, pf, sizeof(pf));
+        fmt_quota_window(&chosen[i], kind, is_idle_sm, now_ms, false, true, pc, sizeof(pc));
+        fmt_quota_window(&chosen[i], kind, is_idle_sm, now_ms, false, false, pm, sizeof(pm));
         if (i > 0) {
           append_str(widgets[nw].full, sizeof(widgets[nw].full), DIM "  |  " R);
           append_str(widgets[nw].compact, sizeof(widgets[nw].compact), DIM " | " R);

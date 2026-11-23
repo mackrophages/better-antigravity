@@ -539,19 +539,33 @@ ${cardsHtml}
 
       // Live demos: Sub Meter + Context Meter + Time Machine + Narrator
       const subEl = $('#sub-meter');
+      const SUB_SEQS = {
+        accent: ['·', '✧', '✦', '◇', '◈', '❖', '◈', '◇', '✦', '✧'],
+        warn: ['·', '✢', '✳', '✶', '✻', '✽', '✻', '✶', '✳', '✢']
+      };
       const WINDOWS = [
-        { icon: '✦', cls: 'accent', label: '5h', pct: 58, rst: '2h 10m' },
-        { icon: '✦', cls: 'accent', label: 'week', pct: 31, rst: '3d 4h' },
-        { icon: '✻', cls: 'warn', label: '5h', pct: 20, rst: '4h 12m' },
-        { icon: '✻', cls: 'warn', label: 'week', pct: 10, rst: '6d 18h' }
+        { cls: 'accent', label: '5h', pct: 58, rst: '2h 10m' },
+        { cls: 'accent', label: 'week', pct: 31, rst: '3d 4h' },
+        { cls: 'warn', label: '5h', pct: 20, rst: '4h 12m' },
+        { cls: 'warn', label: 'week', pct: 10, rst: '6d 18h' }
       ];
       let wIdx = 0;
+      let sFrame = 2;
+      function drawSubDemo() {
+        const w = WINDOWS[wIdx];
+        const f = Math.round(w.pct / 10);
+        const ic = SUB_SEQS[w.cls][sFrame % 10];
+        subEl.innerHTML = '<span class="' + w.cls + '">' + ic + '</span> <span class="dim">' + w.label + ' </span><span class="' + w.cls + '">' + '━'.repeat(f) + '</span><span class="dim">' + '─'.repeat(10 - f) + '</span> ' + w.pct + '% <span class="dim">↻ ' + w.rst + '</span>';
+      }
+      setInterval(() => {
+        if (document.hidden) return;
+        sFrame = (sFrame + 1) % 10;
+        drawSubDemo();
+      }, 300);
       setInterval(() => {
         if (document.hidden) return;
         wIdx = (wIdx + 1) % WINDOWS.length;
-        const w = WINDOWS[wIdx];
-        const f = Math.round(w.pct / 10);
-        subEl.innerHTML = '<span class="' + w.cls + '">' + w.icon + '</span> <span class="dim">' + w.label + ' </span><span class="' + w.cls + '">' + '━'.repeat(f) + '</span><span class="dim">' + '─'.repeat(10 - f) + '</span> ' + w.pct + '% <span class="dim">↻ ' + w.rst + '</span>';
+        drawSubDemo();
       }, 4000);
 
       const ctxEl = $('#context-meter');

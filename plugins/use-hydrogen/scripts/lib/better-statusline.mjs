@@ -24,6 +24,19 @@ const GPT_SILVER = '\x1b[38;5;252m'
 const GPT_SLATE = '\x1b[38;5;247m'
 const SEP = `${DIM} · ${R}`
 
+const SPINNER_GOOGLE = ['·', '✧', '✦', '◇', '◈', '❖', '◈', '◇', '✦', '✧']
+const SPINNER_CLAUDE = ['·', '✢', '✳', '✶', '✻', '✽', '✻', '✶', '✳', '✢']
+const SPINNER_GPT = ['·', '∘', '○', '◎', '◉', '❂', '◉', '◎', '○', '∘']
+
+function pickFamilyIcon (kind, isIdle, nowMs) {
+  if (isIdle) {
+    return kind === 'claude' ? '✻' : (kind === 'gpt' ? '❂' : '✦')
+  }
+  const idx = ((Math.floor(nowMs / 300) % 10) + 10) % 10
+  const seq = kind === 'claude' ? SPINNER_CLAUDE : (kind === 'gpt' ? SPINNER_GPT : SPINNER_GOOGLE)
+  return seq[idx]
+}
+
 function homeDir () {
   return process.env.BETTER_AGY_TEST_HOME || os.homedir()
 }
@@ -301,9 +314,10 @@ function renderSubMeter (payload, pluginCfg, rootDir, nowMs) {
     }
   }
 
+  const isIdle = payload?.agent_state === 'idle'
   const fmtWindow = (w, withBar, withReset) => {
     const kind = resolveBucketKind(w.id || w.label, payload, pluginCfg)
-    const icon = kind === 'claude' ? '✻' : (kind === 'gpt' ? '❂' : '✦')
+    const icon = pickFamilyIcon(kind, isIdle, nowMs)
     const iconColor = kind === 'claude' ? CLAUDE_AMBER : (kind === 'gpt' ? GPT_SILVER : AGY_BLUE)
     const baseBarColor = kind === 'claude' ? CLAUDE_AMBER : (kind === 'gpt' ? GPT_SLATE : AGY_BLUE)
     const pct = Math.round(w.percentUsed)
