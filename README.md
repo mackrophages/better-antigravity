@@ -73,13 +73,19 @@ bash ./install.sh commit time-machine context-meter sub-meter use-hydrogen
 bash ./install.sh --uninstall
 ```
 
+## Soporte Móvil en Termux (Scroll Táctil en Fullscreen)
+
+En Android + Termux, el modo Fullscreen de Antigravity (`"altScreenMode": "always"`) activa `DECSET 1003` (`\x1b[?1003h`, *Any-Event Mouse*) sin `DECSET 1000/1002`. Como `TerminalEmulator` en Termux ignora `1003`, deslizar el dedo en pantalla alternativa enviaba flechas `Arriba`/`Abajo` al historial del prompt en vez de eventos SGR de rueda táctil.
+
+En entornos Termux/proot, `./install.sh` compila automáticamente [`shared/termux-touch-bridge.c`](shared/termux-touch-bridge.c) en `~/.local/bin/agy-touch` (`< 0.2 ms`, bypass directo sin `pty` en modos headless `-p` o subcomandos), inyectando `\x1b[?1002h` junto a `\x1b[?1003h` y propagando `SIGWINCH` al abrir o cerrar el teclado móvil.
+
 ## Desarrollo y Verificación
 
 ```bash
 node scripts/sync-shared.mjs   # Sincroniza librerías e íconos SVG en los 11 plugins
 node scripts/validate-all.mjs  # Corre agy plugin validate --strict en paralelo
 node scripts/build-web.mjs     # Regenera web/index.html 100 % autocontenido
-node --test "test/*.test.mjs"  # Ejecuta las 17 pruebas automatizadas (incluye paridad C11/JS)
+node --test "test/*.test.mjs"  # Ejecuta las 21 pruebas automatizadas (paridad C11/JS y puente PTY)
 node scripts/bench.mjs         # Mide latencias reales (ver resultados en PERF.md)
 ```
 

@@ -51,8 +51,11 @@ function readJson (filePath, fallback = null) {
 function writeJsonAtomic (filePath, data) {
   try {
     fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    let mode = 0o600
+    try { mode = fs.statSync(filePath).mode & 0o777 } catch {}
     const tmp = `${filePath}.tmp-${process.pid}`
-    fs.writeFileSync(tmp, JSON.stringify(data, null, 2) + '\n', 'utf8')
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2) + '\n', { encoding: 'utf8', mode })
+    try { fs.chmodSync(tmp, mode) } catch {}
     fs.renameSync(tmp, filePath)
   } catch {}
 }
