@@ -25,8 +25,8 @@ const ORDER = [
   {
     id: 'sub-meter',
     title: 'Sub Meter',
-    summary: 'Tu consumo de cuota de modelos en vivo abajo en la barra `statusLine` de Antigravity CLI: alterna entre la ventana de 5 horas y la semanal (o muestra ambas lado a lado) con cuenta regresiva de reinicio compartida entre sesiones.',
-    demoHtml: `<div class="demo"><p class="line footer-line"><span class="mode">● READY · accept-edits</span><span id="sub-meter"><span class="dim">5h </span><span class="accent">━━━━━━</span><span class="dim">────</span> 58% <span class="dim">↻ 2h 10m</span></span></p></div>`
+    summary: 'Tu consumo de cuota en vivo abajo en `statusLine`: distingue con iconos y color las bolsas de Google Gemini (`✦` azul) y de terceros Claude/GPT (`✻` ámbar o `❂` gris) rotando ágilmente cada 4 segundos entre ventanas de 5 horas y semanales.',
+    demoHtml: `<div class="demo"><p class="line footer-line"><span class="mode">● READY · accept-edits</span><span id="sub-meter"><span class="accent">✦</span> <span class="dim">5h </span><span class="accent">━━━━━━</span><span class="dim">────</span> 58% <span class="dim">↻ 2h 10m</span></span></p></div>`
   },
   {
     id: 'context-meter',
@@ -540,8 +540,10 @@ ${cardsHtml}
       // Live demos: Sub Meter + Context Meter + Time Machine + Narrator
       const subEl = $('#sub-meter');
       const WINDOWS = [
-        { label: '5h', pct: 58, rst: '2h 10m' },
-        { label: 'week', pct: 31, rst: '3d 4h' }
+        { icon: '✦', cls: 'accent', label: '5h', pct: 58, rst: '2h 10m' },
+        { icon: '✦', cls: 'accent', label: 'week', pct: 31, rst: '3d 4h' },
+        { icon: '✻', cls: 'warn', label: '5h', pct: 20, rst: '4h 12m' },
+        { icon: '✻', cls: 'warn', label: 'week', pct: 10, rst: '6d 18h' }
       ];
       let wIdx = 0;
       setInterval(() => {
@@ -549,7 +551,7 @@ ${cardsHtml}
         wIdx = (wIdx + 1) % WINDOWS.length;
         const w = WINDOWS[wIdx];
         const f = Math.round(w.pct / 10);
-        subEl.innerHTML = '<span class="dim">' + w.label + ' </span><span class="accent">' + '━'.repeat(f) + '</span><span class="dim">' + '─'.repeat(10 - f) + '</span> ' + w.pct + '% <span class="dim">↻ ' + w.rst + '</span>';
+        subEl.innerHTML = '<span class="' + w.cls + '">' + w.icon + '</span> <span class="dim">' + w.label + ' </span><span class="' + w.cls + '">' + '━'.repeat(f) + '</span><span class="dim">' + '─'.repeat(10 - f) + '</span> ' + w.pct + '% <span class="dim">↻ ' + w.rst + '</span>';
       }, 4000);
 
       const ctxEl = $('#context-meter');

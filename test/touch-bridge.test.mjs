@@ -63,8 +63,10 @@ describe('Termux Fullscreen Touch-Scroll PTY Bridge (DECSET 1003 -> 1002)', { sk
       ].join('\n'), { mode: 0o755 })
 
       // Pipe invocation -> direct execv, exit code 42 preserved
+      const cleanPipeEnv = { ...process.env, AGY_TOUCH_TARGET: mockAgy }
+      delete cleanPipeEnv.AGY_TOUCH_TTY
       const pipeRes = spawnSync(bin, ['--exit42', 'hello'], {
-        env: { ...process.env, AGY_TOUCH_TARGET: mockAgy },
+        env: cleanPipeEnv,
         encoding: 'utf8'
       })
       assert.equal(pipeRes.status, 42)

@@ -134,12 +134,41 @@ describe('scripts/better-statusline.mjs', () => {
       }
 
       const wide = formatStatusLine(payload, { nowMs: 16_000 })
-      assert.equal(wide.includes('38;5;208m'), false, 'No Claude orange ANSI in statusLine')
-      assert.equal(wide.includes('38;5;75m'), true, 'Antigravity electric blue ANSI must color quota bar')
+      assert.equal(wide.includes('38;5;208m'), false, 'Google Gemini bucket uses electric blue, not amber')
+      assert.equal(wide.includes('38;5;75m'), true, 'Antigravity electric blue ANSI must color Gemini gem and quota bar')
       const plainWide = wide.replace(/\x1b\[[0-9;]*m/g, '')
-      assert.match(plainWide, /5h ━━━━━━──── 58% ↻ 2h 10m/)
+      assert.match(plainWide, /✦ 5h ━━━━━━──── 58% ↻ 2h 10m/)
       assert.match(plainWide, /⏵ narrator on · ES/)
       assert.ok(visibleWidth(wide) <= 118)
+
+      // Verify 4-bucket rotation (4s default), ✻ Claude amber for 3p-*, and ❂ gray tones when active model is GPT
+      const mixedPayload = {
+        ...payload,
+        model: { id: 'Gemini 4 Carbon (High)', display_name: 'Gemini 4 Carbon (High)' },
+        quota: {
+          '3p-5h': { remaining_fraction: 0.8, reset_in_seconds: 14400 },
+          '3p-weekly': { remaining_fraction: 0.9, reset_in_seconds: 518400 },
+          'gemini-5h': { remaining_fraction: 0.42, reset_in_seconds: 7800 },
+          'gemini-weekly': { remaining_fraction: 0.69, reset_in_seconds: 273600 }
+        }
+      }
+      const rot0 = formatStatusLine(mixedPayload, { nowMs: 0 }) // index 0 -> 3p-5h (Claude amber ✻)
+      assert.equal(rot0.includes('38;5;208m'), true, '3p-5h defaults to Claude amber 38;5;208m')
+      assert.match(rot0.replace(/\x1b\[[0-9;]*m/g, ''), /✻ 5h ━━──────── 20% ↻ 4h 0m/)
+
+      const rot2 = formatStatusLine(mixedPayload, { nowMs: 8_000 }) // 8s / 4s = index 2 -> gemini-5h (Google blue ✦)
+      assert.equal(rot2.includes('38;5;75m'), true)
+      assert.match(rot2.replace(/\x1b\[[0-9;]*m/g, ''), /✦ 5h ━━━━━━──── 58% ↻ 2h 10m/)
+
+      const gptMixed = {
+        ...mixedPayload,
+        model: { id: 'gpt-oss-120b-medium', display_name: 'GPT-OSS 120B (Medium)' }
+      }
+      const rotGpt = formatStatusLine(gptMixed, { nowMs: 0 }) // 3p-5h switches to ❂ silver/slate gray tones
+      assert.equal(rotGpt.includes('38;5;252m'), true, 'GPT icon uses bright silver')
+      assert.equal(rotGpt.includes('38;5;247m'), true, 'GPT bar uses slate gray')
+      assert.equal(rotGpt.includes('38;5;208m'), false, 'GPT mode does not use amber')
+      assert.match(rotGpt.replace(/\x1b\[[0-9;]*m/g, ''), /❂ 5h ━━──────── 20% ↻ 4h 0m/)
 
       const veryWide = formatStatusLine({ ...payload, terminal_width: 150 }, { nowMs: 16_000 })
       assert.match(veryWide.replace(/\x1b\[[0-9;]*m/g, ''), /context 58% · \/compact/)
@@ -156,15 +185,17 @@ describe('scripts/better-statusline.mjs', () => {
         writeState('turn-flags/conv-1.json', { thinkHard: true, useHydrogen: true })
         enableFakePlugins(tmp, ['think-hard', 'use-hydrogen'])
         for (const width of [150, 120, 85, 55]) {
-          const testPayload = { ...payload, terminal_width: width }
-          const jsOut = formatStatusLine(testPayload, { nowMs: 16_000 })
-          const cProc = spawnSync(resNative.targetScript, [], {
-            env: { ...process.env, BETTER_AGY_NOW_MS: '16000' },
-            input: JSON.stringify(testPayload),
-            encoding: 'utf8'
-          })
-          assert.equal(cProc.status, 0, cProc.stderr)
-          assert.equal(cProc.stdout.replace(/\n$/, ''), jsOut, `C11 vs JS mismatch at width=${width}`)
+          for (const [pCase, tNow] of [[payload, 16_000], [mixedPayload, 0], [mixedPayload, 8_000], [gptMixed, 0]]) {
+            const testPayload = { ...pCase, terminal_width: width }
+            const jsOut = formatStatusLine(testPayload, { nowMs: tNow })
+            const cProc = spawnSync(resNative.targetScript, [], {
+              env: { ...process.env, BETTER_AGY_NOW_MS: String(tNow) },
+              input: JSON.stringify(testPayload),
+              encoding: 'utf8'
+            })
+            assert.equal(cProc.status, 0, cProc.stderr)
+            assert.equal(cProc.stdout.replace(/\n$/, ''), jsOut, `C11 vs JS mismatch at width=${width} tNow=${tNow}`)
+          }
         }
 
         // Also verify quota-cache.json countdown & expiration parity when live payload omits quota

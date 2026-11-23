@@ -19,6 +19,9 @@ const CYAN = '\x1b[36m'
 const MAGENTA = '\x1b[95m'
 const AGY_BLUE = '\x1b[38;5;75m'
 const AGY_SKY = '\x1b[38;5;39m'
+const CLAUDE_AMBER = '\x1b[38;5;208m'
+const GPT_SILVER = '\x1b[38;5;252m'
+const GPT_SLATE = '\x1b[38;5;247m'
 const SEP = `${DIM} · ${R}`
 
 function homeDir () {
@@ -123,12 +126,33 @@ function formatUntil (sec) {
 function bucketLabel (id, resetSec) {
   const low = String(id).toLowerCase()
   if (low.includes('5h') || low.includes('five_hour') || low.includes('session') || (resetSec && resetSec <= 21600)) {
-    return low.includes('claude') ? 'claude 5h' : '5h'
+    return '5h'
   }
-  if (low.includes('week') || low.includes('seven_day')) {
-    return low.includes('claude') ? 'claude wk' : 'week'
+  if (low.includes('week') || low.includes('seven_day') || low.endsWith('wk')) {
+    return 'week'
   }
-  return id.replace(/^(gemini|antigravity)-/i, '').slice(0, 10)
+  return String(id).replace(/^(gemini|antigravity|3p|claude|gpt)-/i, '').slice(0, 10)
+}
+
+function isGptModelActive (payload) {
+  const m = payload?.model
+  const hay = typeof m === 'string'
+    ? m.toLowerCase()
+    : `${m?.id || ''} ${m?.display_name || ''}`.toLowerCase()
+  return hay.includes('gpt') || hay.includes('openai')
+}
+
+function resolveBucketKind (idOrLabel, payload, pluginCfg) {
+  const low = String(idOrLabel || '').toLowerCase()
+  if (low.includes('gpt') || low.includes('openai')) return 'gpt'
+  if (low.includes('claude') || low.includes('anthropic')) return 'claude'
+  if (low.startsWith('3p') || low.includes('3p-') || low.includes('third')) {
+    const theme = String(pluginCfg?.thirdPartyTheme || 'auto').toLowerCase()
+    if (theme === 'gpt') return 'gpt'
+    if (theme === 'claude') return 'claude'
+    return isGptModelActive(payload) ? 'gpt' : 'claude'
+  }
+  return 'google'
 }
 
 function parseQuotas (quotaObj, nowMs) {
@@ -249,13 +273,19 @@ function renderSubMeter (payload, pluginCfg, rootDir, nowMs) {
       const expMs = typeof b.resetsAtMs === 'number' ? b.resetsAtMs : (b.resetsAt ? Date.parse(b.resetsAt) : null)
       const rem = expMs !== null && Number.isFinite(expMs) ? Math.max(0, Math.round((expMs - nowMs) / 1000)) : b.resetSec
       const expired = expMs !== null && Number.isFinite(expMs) && expMs <= nowMs
-      return { ...b, percentUsed: expired ? 0 : b.percentUsed, resetSec: expired ? 0 : rem }
+      const nextReset = expired ? 0 : rem
+      return {
+        ...b,
+        label: bucketLabel(b.id || b.label, nextReset),
+        percentUsed: expired ? 0 : b.percentUsed,
+        resetSec: nextReset
+      }
     })
   }
   if (buckets.length === 0) return null
 
   const display = ['rotate', 'both', 'session', 'week'].includes(pluginCfg.display) ? pluginCfg.display : 'rotate'
-  const rotateSec = Number(pluginCfg.rotateSeconds) > 0 ? Number(pluginCfg.rotateSeconds) : 8
+  const rotateSec = Number(pluginCfg.rotateSeconds) > 0 ? Number(pluginCfg.rotateSeconds) : 4
 
   let chosen = buckets
   if (buckets.length >= 2) {
@@ -264,20 +294,24 @@ function renderSubMeter (payload, pluginCfg, rootDir, nowMs) {
       chosen = [buckets[idx]]
     } else if (display === 'session') {
       const short = buckets.filter(b => b.label.includes('5h') || (b.resetSec && b.resetSec <= 21600))
-      if (short.length > 0) chosen = [short[0]]
+      if (short.length > 0) chosen = short
     } else if (display === 'week') {
       const wk = buckets.filter(b => b.label.includes('week') || b.label.includes('wk'))
-      if (wk.length > 0) chosen = [wk[0]]
+      if (wk.length > 0) chosen = wk
     }
   }
 
   const fmtWindow = (w, withBar, withReset) => {
+    const kind = resolveBucketKind(w.id || w.label, payload, pluginCfg)
+    const icon = kind === 'claude' ? '✻' : (kind === 'gpt' ? '❂' : '✦')
+    const iconColor = kind === 'claude' ? CLAUDE_AMBER : (kind === 'gpt' ? GPT_SILVER : AGY_BLUE)
+    const baseBarColor = kind === 'claude' ? CLAUDE_AMBER : (kind === 'gpt' ? GPT_SLATE : AGY_BLUE)
     const pct = Math.round(w.percentUsed)
     const filled = Math.round((Math.min(Math.max(w.percentUsed, 0), 100) / 100) * 10)
-    const barColor = pct >= 90 ? RED : pct >= 75 ? YELLOW : AGY_BLUE
+    const barColor = pct >= 90 ? RED : pct >= 75 ? YELLOW : baseBarColor
     const bar = withBar ? ` ${barColor}${'━'.repeat(filled)}${R}${DIM}${'─'.repeat(10 - filled)}${R}` : ''
     const rstStr = withReset && w.resetSec > 0 ? `${DIM} ↻ ${formatUntil(w.resetSec)}${R}` : ''
-    return `${DIM}${w.label}${R}${bar} ${pct}%${rstStr}`
+    return `${iconColor}${icon}${R} ${DIM}${w.label}${R}${bar} ${pct}%${rstStr}`
   }
 
   return {

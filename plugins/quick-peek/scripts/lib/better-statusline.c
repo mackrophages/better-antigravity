@@ -33,12 +33,15 @@
 #define MAGENTA "\x1b[95m"
 #define AGY_BLUE "\x1b[38;5;75m"
 #define AGY_SKY "\x1b[38;5;39m"
+#define CLAUDE_AMBER "\x1b[38;5;208m"
+#define GPT_SILVER "\x1b[38;5;252m"
+#define GPT_SLATE "\x1b[38;5;247m"
 #define SEP "\x1b[2m · \x1b[0m"
 
 typedef struct {
-  char full[512];
-  char compact[384];
-  char minimal[256];
+  char full[768];
+  char compact[512];
+  char minimal[384];
 } Widget;
 
 static uint32_t rol32(uint32_t v, int b) { return (v << b) | (v >> (32 - b)); }
@@ -341,20 +344,56 @@ typedef struct {
 } QuotaBucket;
 
 static void bucket_label(const char *id, double reset_sec, bool has_reset, char out[24]) {
-  bool is_claude = contains_icase(id, "claude");
   if (contains_icase(id, "5h") || contains_icase(id, "five_hour") || contains_icase(id, "session") ||
       (has_reset && reset_sec > 0 && reset_sec <= 21600)) {
-    strcpy(out, is_claude ? "claude 5h" : "5h");
+    strcpy(out, "5h");
     return;
   }
-  if (contains_icase(id, "week") || contains_icase(id, "seven_day")) {
-    strcpy(out, is_claude ? "claude wk" : "week");
+  size_t ilen = strlen(id);
+  bool ends_wk = ilen >= 2 && strncasecmp(id + ilen - 2, "wk", 2) == 0;
+  if (contains_icase(id, "week") || contains_icase(id, "seven_day") || ends_wk) {
+    strcpy(out, "week");
     return;
   }
   const char *s = id;
   if (strncasecmp(s, "gemini-", 7) == 0) s += 7;
   else if (strncasecmp(s, "antigravity-", 12) == 0) s += 12;
+  else if (strncasecmp(s, "3p-", 3) == 0) s += 3;
+  else if (strncasecmp(s, "claude-", 7) == 0) s += 7;
+  else if (strncasecmp(s, "gpt-", 4) == 0) s += 4;
   snprintf(out, 24, "%.10s", s);
+}
+
+enum { KIND_GOOGLE = 0, KIND_CLAUDE = 1, KIND_GPT = 2 };
+
+static bool is_gpt_model_active(const char *ps, const char *pe) {
+  const char *mv = json_get_prop(ps, pe, "model");
+  if (!mv) return false;
+  char mstr[128] = "";
+  if (*mv == '"') {
+    json_read_str(mv, pe, mstr, sizeof(mstr));
+    return contains_icase(mstr, "gpt") || contains_icase(mstr, "openai");
+  }
+  const char *ms, *me;
+  if (json_obj_bounds(mv, pe, &ms, &me)) {
+    char mid[128] = "", mdn[128] = "";
+    json_read_str(json_get_prop(ms, me, "id"), me, mid, sizeof(mid));
+    json_read_str(json_get_prop(ms, me, "display_name"), me, mdn, sizeof(mdn));
+    return contains_icase(mid, "gpt") || contains_icase(mid, "openai") ||
+           contains_icase(mdn, "gpt") || contains_icase(mdn, "openai");
+  }
+  return false;
+}
+
+static int resolve_bucket_kind(const char *id_or_label, bool gpt_active, const char *tp_theme) {
+  if (contains_icase(id_or_label, "gpt") || contains_icase(id_or_label, "openai")) return KIND_GPT;
+  if (contains_icase(id_or_label, "claude") || contains_icase(id_or_label, "anthropic")) return KIND_CLAUDE;
+  if (strncasecmp(id_or_label, "3p", 2) == 0 || contains_icase(id_or_label, "3p-") || contains_icase(id_or_label, "third")) {
+    if (tp_theme && strcasecmp(tp_theme, "gpt") == 0) return KIND_GPT;
+    if (tp_theme && strcasecmp(tp_theme, "claude") == 0) return KIND_CLAUDE;
+    return gpt_active ? KIND_GPT : KIND_CLAUDE;
+  }
+  return KIND_GOOGLE;
 }
 
 static int parse_quotas_obj(const char *qs, const char *qe, long long now_ms, QuotaBucket *out, int max_b) {
@@ -432,11 +471,14 @@ static int read_cached_quotas(const char *cr, QuotaBucket *out, int max_b, long 
   return nb;
 }
 
-static void fmt_quota_window(const QuotaBucket *w, bool with_bar, bool with_reset, char *out, size_t cap) {
+static void fmt_quota_window(const QuotaBucket *w, int kind, bool with_bar, bool with_reset, char *out, size_t cap) {
+  const char *icon = (kind == KIND_CLAUDE) ? "\xe2\x9c\xbb" : ((kind == KIND_GPT) ? "\xe2\x9d\x82" : "\xe2\x9c\xa6");
+  const char *icol = (kind == KIND_CLAUDE) ? CLAUDE_AMBER : ((kind == KIND_GPT) ? GPT_SILVER : AGY_BLUE);
+  const char *base_bcol = (kind == KIND_CLAUDE) ? CLAUDE_AMBER : ((kind == KIND_GPT) ? GPT_SLATE : AGY_BLUE);
   int pct = (int)floor(w->pct_used + 0.5);
   double cl = w->pct_used < 0 ? 0 : (w->pct_used > 100 ? 100 : w->pct_used);
   int filled = (int)floor((cl / 100.0) * 10.0 + 0.5);
-  const char *bcol = pct >= 90 ? RED : (pct >= 75 ? YELLOW : AGY_BLUE);
+  const char *bcol = pct >= 90 ? RED : (pct >= 75 ? YELLOW : base_bcol);
   char bar[160] = "";
   if (with_bar) {
     size_t o = 0;
@@ -452,7 +494,7 @@ static void fmt_quota_window(const QuotaBucket *w, bool with_bar, bool with_rese
     format_until(w->reset_sec, u);
     if (u[0]) snprintf(rst, sizeof(rst), "%s \xe2\x86\xbb %s%s", DIM, u, R);
   }
-  snprintf(out, cap, "%s%s%s%s %d%%%s", DIM, w->label, R, bar, pct, rst);
+  snprintf(out, cap, "%s%s%s %s%s%s%s %d%%%s", icol, icon, R, DIM, w->label, R, bar, pct, rst);
 }
 
 static void append_str(char *dst, size_t cap, const char *src) {
@@ -723,31 +765,36 @@ int main(void) {
             buckets[i].has_reset = true;
           }
         }
+        const char *key = buckets[i].id[0] ? buckets[i].id : buckets[i].label;
+        bucket_label(key, buckets[i].reset_sec, buckets[i].has_reset, buckets[i].label);
       }
     }
 
     if (nb > 0) {
       char disp[16] = "rotate";
-      double rot_sec = 8;
+      char tp_theme[16] = "auto";
+      double rot_sec = 4;
       const char *ss, *se;
       if (ac_ps && json_obj_bounds(json_get_prop(ac_ps, ac_pe, "sub-meter"), ac_pe, &ss, &se)) {
         json_read_str(json_get_prop(ss, se, "display"), se, disp, sizeof(disp));
+        json_read_str(json_get_prop(ss, se, "thirdPartyTheme"), se, tp_theme, sizeof(tp_theme));
         double rs = 0;
         if (json_read_num(json_get_prop(ss, se, "rotateSeconds"), se, &rs) && rs > 0) rot_sec = rs;
       }
+      bool gpt_active = is_gpt_model_active(ps, pe);
       QuotaBucket chosen[8];
       int nc = 0;
       if (nb >= 2 && strcmp(disp, "both") != 0) {
         if (strcmp(disp, "session") == 0) {
           for (int i = 0; i < nb; i++) {
             if (strstr(buckets[i].label, "5h") || (buckets[i].has_reset && buckets[i].reset_sec > 0 && buckets[i].reset_sec <= 21600)) {
-              chosen[nc++] = buckets[i]; break;
+              chosen[nc++] = buckets[i];
             }
           }
         } else if (strcmp(disp, "week") == 0) {
           for (int i = 0; i < nb; i++) {
             if (strstr(buckets[i].label, "week") || strstr(buckets[i].label, "wk")) {
-              chosen[nc++] = buckets[i]; break;
+              chosen[nc++] = buckets[i];
             }
           }
         } else {
@@ -762,10 +809,12 @@ int main(void) {
 
       widgets[nw].full[0] = widgets[nw].compact[0] = widgets[nw].minimal[0] = '\0';
       for (int i = 0; i < nc; i++) {
+        const char *bkey = chosen[i].id[0] ? chosen[i].id : chosen[i].label;
+        int kind = resolve_bucket_kind(bkey, gpt_active, tp_theme);
         char pf[256], pc[128], pm[96];
-        fmt_quota_window(&chosen[i], true, true, pf, sizeof(pf));
-        fmt_quota_window(&chosen[i], false, true, pc, sizeof(pc));
-        fmt_quota_window(&chosen[i], false, false, pm, sizeof(pm));
+        fmt_quota_window(&chosen[i], kind, true, true, pf, sizeof(pf));
+        fmt_quota_window(&chosen[i], kind, false, true, pc, sizeof(pc));
+        fmt_quota_window(&chosen[i], kind, false, false, pm, sizeof(pm));
         if (i > 0) {
           append_str(widgets[nw].full, sizeof(widgets[nw].full), DIM "  |  " R);
           append_str(widgets[nw].compact, sizeof(widgets[nw].compact), DIM " | " R);
