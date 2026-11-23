@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
 import path from 'node:path'
-import { isHeadless, isSubcall, readStdinJson, stateRoot, writeState } from './lib/store.mjs'
+import { isHeadless, isSubcall, readStdinJson, safeSid, stateRoot, writeState } from './lib/store.mjs'
 import { cleanUserRequest } from './lib/transcript.mjs'
 
 if (isSubcall()) {
@@ -11,8 +11,8 @@ if (isSubcall()) {
 
 const mode = process.argv[2] || 'pre'
 const payload = await readStdinJson()
-const safeSid = String(payload.conversationId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64)
-const flagRel = safeSid ? `turn-flags/think-hard-${safeSid}.json` : ''
+const sid = safeSid(payload.conversationId)
+const flagRel = sid ? `turn-flags/think-hard-${sid}.json` : ''
 const flagAbs = flagRel ? path.join(stateRoot(), flagRel) : ''
 
 function clearFlag () {

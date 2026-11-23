@@ -7,11 +7,12 @@ import {
   setPluginConfig,
   readState,
   repoKey,
+  safeSid,
   stateRoot,
-  writeState
+  updateState
 } from './lib/store.mjs'
 import { MoveBlocked, REF_ROOT, changes, keep, locate, move, nodeRun, treeOf } from './core/git.mjs'
-import { lineOf, nextId } from './core/states.mjs'
+import { lineOf, nextId, normalizeTmState } from './core/states.mjs'
 import { ICON, ago, digestText, summary } from './core/format.mjs'
 
 let cwd = process.cwd()
@@ -50,18 +51,20 @@ const rKey = repoKey(probe.top)
 const repoDir = path.join(stateRoot(), 'time-machine', rKey)
 
 function resolveSessionId () {
-  if (process.env.BETTER_AGY_TM_SESSION) return process.env.BETTER_AGY_TM_SESSION
+  if (process.env.BETTER_AGY_TM_SESSION) return safeSid(process.env.BETTER_AGY_TM_SESSION, 'default')
   const latest = readState(`time-machine/${rKey}/latest.json`, null)
-  if (latest?.sessionId && fs.existsSync(path.join(repoDir, `${latest.sessionId}.json`))) {
-    return latest.sessionId
+  const latestSid = safeSid(latest?.sessionId)
+  if (latestSid && fs.existsSync(path.join(repoDir, `${latestSid}.json`))) {
+    return latestSid
   }
   if (!fs.existsSync(repoDir)) return 'default'
   const files = fs.readdirSync(repoDir)
     .filter(f => f.endsWith('.json') && f !== 'latest.json')
     .map(f => ({
-      sid: f.slice(0, -5),
+      sid: safeSid(f.slice(0, -5)),
       mtime: fs.statSync(path.join(repoDir, f)).mtimeMs
     }))
+    .filter(x => x.sid)
     .sort((a, b) => b.mtime - a.mtime)
   return files[0]?.sid || 'default'
 }
@@ -69,7 +72,7 @@ function resolveSessionId () {
 const sid = resolveSessionId()
 const repo = await locate(nodeRun, cwd, sid)
 const sFile = `time-machine/${rKey}/${sid}.json`
-const data = readState(sFile, { sessionId: sid, repoTop: repo.top, states: [], cursor: null, jumpedFrom: null })
+let data = normalizeTmState(readState(sFile, null), sid, repo.top)
 
 function renderTimeline (stateData, dirtyNote = '') {
   const { states, cursor, jumpedFrom } = stateData
@@ -112,12 +115,16 @@ async function jumpToState (targetId) {
 
   const nowTree = await treeOf(nodeRun, repo)
   if (nowTree.tree === target.tree) {
-    data.cursor = target.id
-    writeState(sFile, data)
+    data = updateState(sFile, null, (curr) => {
+      const norm = normalizeTmState(curr || data, sid, repo.top)
+      norm.cursor = target.id
+      return normalizeTmState(norm, sid, repo.top)
+    })
     console.log(`⏪ Already at state #${target.id} (${target.label}).`)
     return
   }
 
+  let extraManual = null
   const knownNow = data.states.find(s => s.tree === nowTree.tree)
   if (!knownNow) {
     const savedId = nextId(data.states)
@@ -125,27 +132,38 @@ async function jumpToState (targetId) {
     const commit = await keep(nodeRun, repo, nowTree, `${REF_ROOT}/${sid}/${savedId}`, savedLabel)
     const curState = data.states.find(s => s.id === data.cursor)
     const diffFiles = curState ? await changes(nodeRun, repo, curState.tree, nowTree.tree) : []
-    data.states.push({
-      id: savedId,
-      parent: data.cursor,
-      tree: nowTree.tree,
-      head: nowTree.head,
-      commit,
-      label: savedLabel,
-      prompt: savedLabel,
-      at: Date.now(),
-      files: diffFiles
-    })
-    data.cursor = savedId
+    extraManual = { commit, savedLabel, diffFiles, at: Date.now() }
   }
 
   try {
     const moved = await move(nodeRun, repo, nowTree.tree, target.tree)
-    const prevCursor = data.cursor
-    data.cursor = target.id
-    data.jumpedFrom = prevCursor
-    data.jumpedNoticePending = true
-    writeState(sFile, data)
+    data = updateState(sFile, null, (curr) => {
+      const norm = normalizeTmState(curr || data, sid, repo.top)
+      if (extraManual && !norm.states.some(s => s.tree === nowTree.tree)) {
+        const sId = nextId(norm.states)
+        norm.states.push({
+          id: sId,
+          parent: norm.cursor,
+          tree: nowTree.tree,
+          head: nowTree.head,
+          commit: extraManual.commit,
+          label: extraManual.savedLabel,
+          prompt: extraManual.savedLabel,
+          at: extraManual.at,
+          files: extraManual.diffFiles
+        })
+        norm.cursor = sId
+      }
+      const prevCursor = norm.cursor
+      norm.cursor = target.id
+      norm.jumpedFrom = prevCursor
+      norm.jumpedNoticePending = true
+      return normalizeTmState(norm, sid, repo.top)
+    })
+
+    const jFlag = path.join(stateRoot(), 'time-machine', `jumped-${sid}.flag`)
+    fs.mkdirSync(path.dirname(jFlag), { recursive: true, mode: 0o700 })
+    fs.writeFileSync(jFlag, `${target.id}\n`, { encoding: 'utf8', mode: 0o600 })
 
     const headMovedNote = target.head && nowTree.head && target.head !== nowTree.head
       ? '\n  Note: HEAD moved since this snapshot; files were restored onto your current HEAD and branch.'
@@ -218,7 +236,6 @@ if (sub === 'jump' || /^#?\d+$/.test(sub)) {
   process.exit(0)
 }
 
-// Default: list timeline + detect unsaved manual edits
 let dirty = ''
 if (data.states.length > 0 && data.cursor !== null) {
   const cur = data.states.find(s => s.id === data.cursor)

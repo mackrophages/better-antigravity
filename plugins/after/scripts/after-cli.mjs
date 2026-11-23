@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// CLI for /after and /before (works inside Antigravity skills AND from any second terminal).
+// CLI for /after and /before (atomic file-locked updates across Antigravity skills and external terminals).
 import path from 'node:path'
-import { readState, repoKey, writeState } from './lib/store.mjs'
+import { repoKey, updateState } from './lib/store.mjs'
 import { normalizeState, renderCard, runCommandOnState } from './core/queue-engine.mjs'
 
 let cwd = process.cwd()
@@ -22,7 +22,10 @@ if (rest[0] === 'after' || rest[0] === 'before') {
 const argText = rest.join(' ').trim()
 
 const qPath = `after/${repoKey(cwd)}.json`
-const current = normalizeState(readState(qPath, null), { cwd })
-const result = runCommandOnState(current, command, argText, Date.now())
-writeState(qPath, result.state)
+let result = null
+updateState(qPath, null, (curr) => {
+  const normalized = normalizeState(curr, { cwd })
+  result = runCommandOnState(normalized, command, argText, Date.now())
+  return result.state
+})
 console.log(renderCard(result))

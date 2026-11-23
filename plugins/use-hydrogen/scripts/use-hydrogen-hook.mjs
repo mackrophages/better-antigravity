@@ -7,6 +7,7 @@ import {
   isHeadless,
   isSubcall,
   readStdinJson,
+  safeSid,
   stateRoot,
   writeState
 } from './lib/store.mjs'
@@ -20,8 +21,8 @@ if (isSubcall()) {
 const here = path.dirname(fileURLToPath(import.meta.url))
 const mode = process.argv[2] || 'pre'
 const payload = await readStdinJson()
-const safeSid = String(payload.conversationId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64)
-const flagRel = safeSid ? `turn-flags/use-hydrogen-${safeSid}.json` : ''
+const sid = safeSid(payload.conversationId)
+const flagRel = sid ? `turn-flags/use-hydrogen-${sid}.json` : ''
 const flagAbs = flagRel ? path.join(stateRoot(), flagRel) : ''
 
 function clearFlag () {

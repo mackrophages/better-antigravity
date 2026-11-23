@@ -2,30 +2,42 @@
 // (ported from midudev/better-claude quick-peek/hooks/paths.ts & code.ts).
 import os from 'node:os'
 
-const TRAILING = /[.,;:!?)\]}>'"»”’]+$/
+const TRAILING = /[.,;:!?\]}>'"»”’]+$/
 const LINE = /:\d+(?::\d+)?$/
 const URL_RE = /\b[a-z][a-z0-9+.-]*:\/\/[^\s<>()]+/gi
 const DRIVE = /^[A-Za-z]:[\\/]/
+const SEG = String.raw`(?:[\w@.+~#-]+|\([\w@.+~#-]+\))+`
 
 const CANDIDATE = new RegExp(
   [
-    String.raw`(?:~|\.{1,2})?\/[^\s\`'"<>()[\]{}|*]+`,
+    String.raw`(?:~|\.{1,2})?\/(?:[^\s\`'"<>()[\]{}|*]+|\([^\s\`'"<>()[\]{}|*]+\))+`,
     String.raw`[A-Za-z]:\\[^\s\`'"<>()[\]{}|*]+`,
-    String.raw`\.?[\w@+-][\w@.+-]*(?:\/[\w@.+-]+)+\/?`,
-    String.raw`\.?[\w@+-][\w@.+-]*\.[A-Za-z][A-Za-z0-9]{0,9}`
-  ].map(source => `(?<![\\w/.~:\\\\@-])(?:${source})(?::\\d+(?::\\d+)?)?`).join('|'),
+    String.raw`\.?${SEG}(?:\/${SEG})+\/?`,
+    String.raw`\.?${SEG}\.[A-Za-z][A-Za-z0-9]{0,9}`
+  ].map(source => `(?<![\\w/.~:\\\\@#-])(?:${source})(?::\\d+(?::\\d+)?)?`).join('|'),
   'g'
 )
 
+function stripTrailingPunct (s) {
+  let out = s.replace(TRAILING, '')
+  while (out.endsWith(')')) {
+    const opens = (out.match(/\(/g) || []).length
+    const closes = (out.match(/\)/g) || []).length
+    if (closes > opens) out = out.slice(0, -1).replace(TRAILING, '')
+    else break
+  }
+  return out
+}
+
 function clean (text) {
-  let target = text.replace(TRAILING, '')
+  let target = stripTrailingPunct(text)
   target = target.replace(LINE, '')
-  target = target.replace(TRAILING, '')
+  target = stripTrailingPunct(target)
   return /[\w~]/.test(target) && target !== '~' ? target : undefined
 }
 
 export function lineOf (text) {
-  const line = String(text ?? '').trim().replace(TRAILING, '').match(LINE)?.[0]
+  const line = stripTrailingPunct(String(text ?? '').trim()).match(LINE)?.[0]
   return line === undefined ? undefined : Number(line.slice(1).split(':')[0])
 }
 
@@ -34,7 +46,7 @@ export function pathsIn (text) {
   const found = []
   for (const match of masked.matchAll(CANDIDATE)) {
     const whole = match[0]
-    const trimmed = whole.replace(TRAILING, '')
+    const trimmed = stripTrailingPunct(whole)
     const target = clean(whole)
     if (target === undefined) continue
     found.push({ start: match.index, end: match.index + trimmed.length, target, line: lineOf(trimmed), raw: trimmed })

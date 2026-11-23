@@ -96,6 +96,10 @@ const childEnv = {
   CLAUDE_MEM_SIN_HOOK: '1'
 }
 
+const timeoutMs = Number(process.env.AGY_HYDROGEN_TIMEOUT_MS) > 0
+  ? Number(process.env.AGY_HYDROGEN_TIMEOUT_MS)
+  : 180_000
+
 const proc = spawnSync(
   agyBin,
   ['--model', activeModel, '--disable-slash-commands', '--output-format', 'json', '-p', promptText],
@@ -103,9 +107,15 @@ const proc = spawnSync(
     cwd,
     env: childEnv,
     encoding: 'utf8',
+    timeout: timeoutMs,
     maxBuffer: 16 * 1024 * 1024
   }
 )
+
+if (proc.error?.code === 'ETIMEDOUT') {
+  console.error(`Use Hydrogen execution timed out after ${Math.round(timeoutMs / 1000)}s (${activeModel}).`)
+  process.exit(124)
+}
 
 if (proc.status !== 0) {
   const errMsg = (proc.stderr || proc.stdout || `agy exited with code ${proc.status}`).trim()

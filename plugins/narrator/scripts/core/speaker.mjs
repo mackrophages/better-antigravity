@@ -6,7 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { readState, writeState } from '../lib/store.mjs'
+import { isNarratorWorkerAlive, readState, updateState, writeState } from '../lib/store.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const TERMUX_TTS = '/data/data/com.termux/files/usr/bin/termux-tts-speak'
@@ -62,14 +62,15 @@ export function listVoicesText () {
 
 export function stopSpeaking () {
   const runtime = readState('narrator-runtime.json', {})
-  if (runtime?.speakingPid) {
-    try { process.kill(-Number(runtime.speakingPid), 'SIGTERM') } catch {}
-    try { process.kill(Number(runtime.speakingPid), 'SIGTERM') } catch {}
+  const pid = Number(runtime?.speakingPid)
+  if (pid > 0 && isNarratorWorkerAlive(pid, runtime?.startedAt)) {
+    try { process.kill(-pid, 'SIGTERM') } catch {}
+    try { process.kill(pid, 'SIGTERM') } catch {}
   }
   if (which('spd-say')) {
     spawnSync('spd-say', ['-S'], { stdio: 'ignore' })
   }
-  writeState('narrator-runtime.json', { ...runtime, speakingPid: null, stoppedAt: Date.now() })
+  updateState('narrator-runtime.json', {}, curr => ({ ...(curr || {}), speakingPid: null, stoppedAt: Date.now() }))
 }
 
 export function buildSpeakCommand (synth, { text, language = '', voice = '', speed = 1.3 }) {
@@ -102,7 +103,6 @@ export function buildSpeakCommand (synth, { text, language = '', voice = '', spe
     args.push('--', text)
     return { cmd: synth.bin, args }
   }
-  // espeak-ng / espeak
   const args = []
   const v = voice || language
   if (v) args.push('-v', v)
@@ -128,6 +128,11 @@ export function speakDetached ({ text, language = '', voice = '', speed = 1.3, c
     }
   })
   child.unref()
-  writeState('narrator-runtime.json', { speakingPid: child.pid, startedAt: Date.now(), synthesizer: synth.kind })
+  updateState('narrator-runtime.json', {}, curr => ({
+    ...(curr || {}),
+    speakingPid: child.pid,
+    startedAt: Date.now(),
+    synthesizer: synth.kind
+  }))
   return { started: true, pid: child.pid, synthesizer: synth.kind }
 }

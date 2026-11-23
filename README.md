@@ -15,7 +15,7 @@ Incluye los **11 plugins completos** (los 7 destacados en la web pública más l
 | **Quick Peek** | `/quick-peek [ruta[:línea]]` | Previsualiza rutas de las respuestas (20 líneas coloreadas centradas en `:línea`, carpetas y metadatos) y las revela en el gestor del sistema (`termux-open`, `Finder`, `Explorer`, `xdg-open`). | [`plugins/quick-peek/`](plugins/quick-peek/README.md) |
 | **Image Preview** | `/image-preview [ruta\|recent]` | Renderiza imágenes, primera página de PDFs (`pdftoppm`) y fotogramas de video (`ffmpeg`) en bloques Unicode truecolor de 24 bits (muestreo 8x8 en luz lineal con `PIL` o lector BMP puro). | [`plugins/image-preview/`](plugins/image-preview/README.md) |
 | **Sub Meter** | Barra `statusLine` + `/sub-meter` | Muestra en vivo las ventanas de cuota (5 horas y semanal) con barra de 10 celdas y cuenta regresiva de reinicio compartida entre terminales. | [`plugins/sub-meter/`](plugins/sub-meter/README.md) |
-| **Context Meter** | Barra `statusLine` + `/context-meter` | Muestra el porcentaje de ventana de contexto usado (gris <50 %, amarillo >=50 % `/compact`, rojo >=75 %) y lanza aviso único al cruzar el umbral crítico sin gastar tokens. | [`plugins/context-meter/`](plugins/context-meter/README.md) |
+| **Context Meter** | Barra `statusLine` + `/context-meter` | Muestra el porcentaje y capacidad de contexto por modelo (`✦ 1M` Gemini, `✻ 200k` Claude, `❂ 128k` GPT; gris <50 %, amarillo >=50 % `/compact`, rojo >=75 %) con aviso único sin gastar tokens. | [`plugins/context-meter/`](plugins/context-meter/README.md) |
 | **Commit** | `/commit` | Pregunta con `ask_question` (`Commit + push`, `Commit only` o `Commit on a new branch`), bloquea `.env*` y llaves privadas, y divide cambios en Conventional Commits limpios sin trailers de IA. | [`plugins/commit/`](plugins/commit/README.md) |
 | **Narrator** | `/narrator` + hook `Stop` | Resume en voz alta cada turno terminado en tu idioma (`AVSpeechSynthesizer`, `System.Speech`, `spd-say`/`espeak-ng` o `termux-tts-speak`) con cola compartida entre ventanas. | [`plugins/narrator/`](plugins/narrator/README.md) |
 | **Time Machine** | `/timeline` + hooks Git | Cada turno que edita archivos (incluido Bash) crea un snapshot Git en un índice propio (`.git/time-machine-<sesión>.index`) bajo `refs/time-machine/*` sin tocar `HEAD`, ramas ni staging. | [`plugins/time-machine/`](plugins/time-machine/README.md) |
@@ -73,19 +73,13 @@ bash ./install.sh commit time-machine context-meter sub-meter use-hydrogen
 bash ./install.sh --uninstall
 ```
 
-## Soporte Móvil en Termux (Scroll Táctil en Fullscreen)
-
-En Android + Termux, el modo Fullscreen de Antigravity (`"altScreenMode": "always"`) activa `DECSET 1003` (`\x1b[?1003h`, *Any-Event Mouse*) sin `DECSET 1000/1002`. Como `TerminalEmulator` en Termux ignora `1003`, deslizar el dedo en pantalla alternativa enviaba flechas `Arriba`/`Abajo` al historial del prompt en vez de eventos SGR de rueda táctil.
-
-En entornos Termux/proot, `./install.sh` compila automáticamente [`shared/termux-touch-bridge.c`](shared/termux-touch-bridge.c) en `~/.local/bin/agy-touch` (`< 0.2 ms`, bypass directo sin `pty` en modos headless `-p` o subcomandos), inyectando `\x1b[?1002h` junto a `\x1b[?1003h` y propagando `SIGWINCH` al abrir o cerrar el teclado móvil.
-
 ## Desarrollo y Verificación
 
 ```bash
-node scripts/sync-shared.mjs   # Sincroniza librerías e íconos SVG en los 11 plugins
+node scripts/sync-shared.mjs   # Sincroniza selectivamente las librerías e íconos SVG en los 11 plugins
 node scripts/validate-all.mjs  # Corre agy plugin validate --strict en paralelo
 node scripts/build-web.mjs     # Regenera web/index.html 100 % autocontenido
-node --test "test/*.test.mjs"  # Ejecuta las 21 pruebas automatizadas (paridad C11/JS y puente PTY)
+node --test "test/*.test.mjs"  # Ejecuta la suite de regresión y paridad C11/JS
 node scripts/bench.mjs         # Mide latencias reales (ver resultados en PERF.md)
 ```
 

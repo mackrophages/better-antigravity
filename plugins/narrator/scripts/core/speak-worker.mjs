@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-// Detached worker that acquires a cross-window ticket lock in /tmp and runs the synthesizer.
+// Detached worker that acquires an atomic O_EXCL seat lock inside private 0700 stateRoot()
+// (never world-writable /tmp) and runs the system TTS synthesizer.
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
+import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
-import { readState, writeState } from '../lib/store.mjs'
+import { isProcessAlive, sleepSyncMs, stateRoot, updateState } from '../lib/store.mjs'
 import { buildSpeakCommand } from './speaker.mjs'
 
 let payload
@@ -17,25 +18,45 @@ try {
 const spec = buildSpeakCommand(payload.synth, payload)
 if (!spec) process.exit(0)
 
-const lockDir = path.join(os.tmpdir(), `agy-narrator-queue-${process.getuid ? process.getuid() : '0'}`)
-fs.mkdirSync(lockDir, { recursive: true })
-const seatPath = path.join(lockDir, 'seat.pid')
+const root = stateRoot()
+fs.mkdirSync(root, { recursive: true, mode: 0o700 })
+const seatPath = path.join(root, 'narrator-seat.lock')
+const token = `${process.pid}:${crypto.randomBytes(4).toString('hex')}`
+let acquired = false
+let emptyRetries = 0
 
-// Bounded wait by iteration count (never Date.now(), safe under Termux proot clock jumps!)
+// Bounded wait by iteration count (never Date.now(), safe under Termux proot clock jumps)
 for (let i = 0; i < 60; i++) {
   try {
-    const holder = Number(fs.readFileSync(seatPath, 'utf8').trim())
-    if (holder && holder !== process.pid) {
-      process.kill(holder, 0)
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250)
-      continue
+    const fd = fs.openSync(seatPath, 'wx', 0o600)
+    try {
+      fs.writeSync(fd, `${token}\n`)
+    } finally {
+      fs.closeSync(fd)
     }
-  } catch {}
-  try {
-    fs.writeFileSync(seatPath, String(process.pid), 'utf8')
+    acquired = true
     break
-  } catch {
-    break
+  } catch (err) {
+    if (err?.code !== 'EEXIST') break
+    try {
+      const raw = fs.readFileSync(seatPath, 'utf8').trim()
+      if (!raw) {
+        emptyRetries++
+        if (emptyRetries > 8) {
+          try { fs.unlinkSync(seatPath) } catch {}
+          emptyRetries = 0
+          continue
+        }
+      } else {
+        emptyRetries = 0
+        const holder = Number(raw.split(':')[0])
+        if (holder > 0 && holder !== process.pid && !isProcessAlive(holder)) {
+          try { fs.unlinkSync(seatPath) } catch {}
+          continue
+        }
+      }
+    } catch {}
+    sleepSyncMs(250)
   }
 }
 
@@ -46,13 +67,17 @@ try {
     env: spec.env ? { ...process.env, ...spec.env } : process.env
   })
 } finally {
-  try {
-    if (fs.readFileSync(seatPath, 'utf8').trim() === String(process.pid)) {
-      fs.unlinkSync(seatPath)
-    }
-  } catch {}
-  const rt = readState('narrator-runtime.json', {})
-  if (rt?.speakingPid === process.pid) {
-    writeState('narrator-runtime.json', { ...rt, speakingPid: null, endedAt: Date.now() })
+  if (acquired) {
+    try {
+      if (fs.readFileSync(seatPath, 'utf8').trim() === token) {
+        fs.unlinkSync(seatPath)
+      }
+    } catch {}
   }
+  updateState('narrator-runtime.json', {}, (rt) => {
+    if (rt?.speakingPid === process.pid) {
+      return { ...rt, speakingPid: null, endedAt: Date.now() }
+    }
+    return rt || {}
+  })
 }

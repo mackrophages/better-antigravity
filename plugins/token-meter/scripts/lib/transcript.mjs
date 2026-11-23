@@ -1,7 +1,7 @@
 // Reads Antigravity's transcript.jsonl efficiently:
 // - Fast line scanner skipping TOOL payloads during summarization
-// - O(1) tail reader (128 KB with 512 KB retry) for latest input_tokens
-// - Raw-Buffer O(delta) byte-offset scanner immune to invalid UTF-8 expansion
+// - O(1) tail readers (128 KB with 512 KB / 2 MB retry) for latest input_tokens and latest assistant answer
+// - 64 KB chunked raw-Buffer O(delta) byte-offset scanner immune to invalid UTF-8 expansion
 import fs from 'node:fs'
 import os from 'node:os'
 
@@ -75,6 +75,35 @@ function scanTailWindow (fd, fileSize, windowBytes) {
   return null
 }
 
+function scanTailAnswerWindow (fd, fileSize, windowBytes) {
+  const readLen = Math.min(fileSize, windowBytes)
+  const offset = fileSize - readLen
+  const buf = Buffer.allocUnsafe(readLen)
+  const bytesRead = fs.readSync(fd, buf, 0, readLen, offset)
+  const chunk = buf.toString('utf8', 0, bytesRead)
+  let end = chunk.length
+  while (end > 0) {
+    const nl = chunk.lastIndexOf('\n', end - 1)
+    const lineStart = nl === -1 ? 0 : nl + 1
+    if (nl === -1 && offset > 0) break
+    const line = chunk.slice(lineStart, end).trim()
+    end = nl
+    if (!line) continue
+    if (!line.includes('"PLANNER_RESPONSE"') && !line.includes('"USER_EXPLICIT"')) continue
+    try {
+      const e = JSON.parse(line)
+      if (e.source === 'USER_EXPLICIT' && e.type === 'USER_INPUT') {
+        // Reached the start of the latest user turn without finding a non-empty model reply
+        return ''
+      }
+      if (e.source === 'MODEL' && e.type === 'PLANNER_RESPONSE' && typeof e.content === 'string' && e.content.trim()) {
+        return e.content.trim()
+      }
+    } catch {}
+  }
+  return null
+}
+
 /**
  * O(1) tail lookup of the latest PLANNER_RESPONSE token usage from the end of transcript.jsonl.
  * Reads 128 KB first, with a single 512 KB fallback retry when huge tool outputs trail EOF.
@@ -100,8 +129,34 @@ export function readLatestUsageTail (transcriptPath, tailBytes = 131_072) {
 }
 
 /**
- * O(delta) incremental token scanner: finds last newline directly on raw Buffer bytes
- * before UTF-8 decoding so U+FFFD replacement never skews `nextByteOffset`.
+ * O(1) tail lookup of the latest non-empty assistant answer in the active turn (used by Quick Peek
+ * PostInvocation hook so sessions never suffer O(N^2) full-transcript re-reads).
+ */
+export function readLatestAnswerTail (transcriptPath, tailBytes = 131_072) {
+  const resolved = expandTilde(transcriptPath)
+  if (!resolved) return ''
+  let fd = -1
+  try {
+    const st = fs.statSync(resolved, { throwIfNoEntry: false })
+    if (!st || st.size === 0) return ''
+    fd = fs.openSync(resolved, 'r')
+    for (const win of [tailBytes, Math.max(tailBytes * 4, 524_288), 2_097_152]) {
+      const found = scanTailAnswerWindow(fd, st.size, win)
+      if (found !== null || st.size <= win) return found || ''
+    }
+    return ''
+  } catch {
+    return ''
+  } finally {
+    if (fd !== -1) {
+      try { fs.closeSync(fd) } catch {}
+    }
+  }
+}
+
+/**
+ * O(delta) incremental token scanner: streams fixed 64 KB chunks and locates newlines directly
+ * on raw Buffer bytes before UTF-8 decoding so U+FFFD replacement never skews `nextByteOffset`.
  */
 export function scanTokensFromOffset (transcriptPath, fromByte = 0) {
   const resolved = expandTilde(transcriptPath)
@@ -117,41 +172,62 @@ export function scanTokensFromOffset (transcriptPath, fromByte = 0) {
       return { nextByteOffset: st.size, reset, model: '', last: null, delta: { input: 0, output: 0, cached: 0 }, deltaTurns: 0 }
     }
     fd = fs.openSync(resolved, 'r')
-    const buf = Buffer.allocUnsafe(len)
-    const n = fs.readSync(fd, buf, 0, len, startByte)
-    const lastNl = buf.lastIndexOf(0x0a, n - 1)
-    if (lastNl === -1) {
-      return { nextByteOffset: startByte, reset, model: '', last: null, delta: { input: 0, output: 0, cached: 0 }, deltaTurns: 0 }
-    }
-    const consumedBytes = lastNl + 1
-    const complete = buf.toString('utf8', 0, consumedBytes)
-    let pos = 0
+
+    const CHUNK_BYTES = 65_536
+    const readBuf = Buffer.allocUnsafe(Math.min(len, CHUNK_BYTES))
+    let carry = Buffer.alloc(0)
+    let filePos = startByte
+    let remaining = len
+    let consumedBytes = 0
     let latestModel = ''
     let last = null
     const delta = { input: 0, output: 0, cached: 0 }
     let deltaTurns = 0
 
-    while (pos < complete.length) {
-      const end = complete.indexOf('\n', pos)
-      const line = complete.slice(pos, end === -1 ? complete.length : end).trim()
-      pos = end === -1 ? complete.length : end + 1
-      if (!line || !line.includes('"PLANNER_RESPONSE"')) continue
-      try {
-        const e = JSON.parse(line)
-        if (e.source === 'MODEL' && e.type === 'PLANNER_RESPONSE') {
-          if (e.model) latestModel = String(e.model)
-          const inp = Number(e.input_tokens) || 0
-          const out = Number(e.output_tokens) || 0
-          const cache = (Number(e.cache_read_tokens) || 0) + (Number(e.cache_creation_tokens) || 0)
-          if (inp > 0 || out > 0 || cache > 0) {
-            last = { input: inp, output: out, cached: cache, model: latestModel }
-            delta.input += inp
-            delta.output += out
-            delta.cached += cache
-            deltaTurns++
+    while (remaining > 0) {
+      const toRead = Math.min(remaining, readBuf.length)
+      const n = fs.readSync(fd, readBuf, 0, toRead, filePos)
+      if (n <= 0) break
+      filePos += n
+      remaining -= n
+
+      const combined = carry.length > 0
+        ? Buffer.concat([carry, readBuf.subarray(0, n)])
+        : readBuf.subarray(0, n)
+      const lastNl = combined.lastIndexOf(0x0a)
+      if (lastNl === -1) {
+        carry = Buffer.from(combined)
+        continue
+      }
+
+      const completeLen = lastNl + 1
+      consumedBytes += completeLen
+      const complete = combined.toString('utf8', 0, completeLen)
+      carry = Buffer.from(combined.subarray(completeLen))
+
+      let pos = 0
+      while (pos < complete.length) {
+        const end = complete.indexOf('\n', pos)
+        const line = complete.slice(pos, end === -1 ? complete.length : end).trim()
+        pos = end === -1 ? complete.length : end + 1
+        if (!line || !line.includes('"PLANNER_RESPONSE"')) continue
+        try {
+          const e = JSON.parse(line)
+          if (e.source === 'MODEL' && e.type === 'PLANNER_RESPONSE') {
+            if (e.model) latestModel = String(e.model)
+            const inp = Number(e.input_tokens) || 0
+            const out = Number(e.output_tokens) || 0
+            const cache = (Number(e.cache_read_tokens) || 0) + (Number(e.cache_creation_tokens) || 0)
+            if (inp > 0 || out > 0 || cache > 0) {
+              last = { input: inp, output: out, cached: cache, model: latestModel }
+              delta.input += inp
+              delta.output += out
+              delta.cached += cache
+              deltaTurns++
+            }
           }
-        }
-      } catch {}
+        } catch {}
+      }
     }
 
     return {

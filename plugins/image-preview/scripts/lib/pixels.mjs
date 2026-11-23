@@ -250,7 +250,7 @@ export function renderAnsiRows (pixels, maxCols = 44, maxRows = 16) {
 }
 
 export const PREVIEWABLE_MEDIA_EXTS = new Set([
-  '.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tiff', '.svg',
+  '.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tiff', '.tif', '.svg',
   '.pdf', '.mp4', '.mov', '.webm', '.avi', '.mkv'
 ])
 
@@ -381,7 +381,18 @@ function decodeViaFfmpegPam (inputPath, maxSide) {
   const scale = `scale='min(${maxSide},iw)':'min(${maxSide},ih)':force_original_aspect_ratio=decrease`
   const r = spawnSync(
     'ffmpeg',
-    ['-v', 'error', '-i', absPath, '-frames:v', '1', '-vf', scale, '-c:v', 'pam', '-pix_fmt', 'rgba', '-f', 'image2pipe', 'pipe:1'],
+    [
+      '-nostdin',
+      '-v', 'error',
+      '-protocol_whitelist', 'file,pipe',
+      '-i', absPath,
+      '-frames:v', '1',
+      '-vf', scale,
+      '-c:v', 'pam',
+      '-pix_fmt', 'rgba',
+      '-f', 'image2pipe',
+      'pipe:1'
+    ],
     { timeout: 15_000, maxBuffer: 16 * 1024 * 1024 }
   )
   if (r.status !== 0 || !r.stdout) return null
@@ -466,16 +477,55 @@ export function decodeMediaFile (filePath, maxSide = 360) {
     }
   }
 
+  // Fallback for Ubuntu builds where ffmpeg lacks --enable-librsvg: in-memory rsvg-convert -> ffmpeg PNG pipe
+  if (ext === '.svg') {
+    const rsvg = spawnSync('rsvg-convert', ['-w', String(maxSide), '--keep-aspect-ratio', path.resolve(filePath)], {
+      timeout: 10_000,
+      maxBuffer: 8 * 1024 * 1024
+    })
+    if (rsvg.status === 0 && rsvg.stdout?.length > 0) {
+      const pamSvg = spawnSync(
+        'ffmpeg',
+        ['-nostdin', '-v', 'error', '-f', 'png_pipe', '-i', 'pipe:0', '-frames:v', '1', '-c:v', 'pam', '-pix_fmt', 'rgba', '-f', 'image2pipe', 'pipe:1'],
+        { input: rsvg.stdout, timeout: 10_000, maxBuffer: 16 * 1024 * 1024 }
+      )
+      const parsed = pamSvg.status === 0 && pamSvg.stdout ? parsePamRgba(pamSvg.stdout) : null
+      if (parsed) {
+        return {
+          width: parsed.width,
+          height: parsed.height,
+          origWidth: sniffed?.w || parsed.width,
+          origHeight: sniffed?.h || parsed.height,
+          format: 'SVG',
+          data: parsed.data
+        }
+      }
+    }
+  }
+
   if (!isVideo && ext !== '.svg') {
     return decodeViaPilFallback(filePath, maxSide, kindLabel)
   }
   return null
 }
 
+/**
+ * Opens a media file in the system viewer (`revealOnly: false` strictly enforces `PREVIEWABLE_MEDIA_EXTS`
+ * so `.exe`, `.desktop`, `.sh`, `.bat`, or `.cmd` can never be executed via OS shell handlers).
+ */
 export function openInSystemViewer (filePath, { revealOnly = false } = {}) {
+  const ext = path.extname(filePath).toLowerCase()
+  if (!revealOnly && !PREVIEWABLE_MEDIA_EXTS.has(ext)) {
+    return { opened: false, refused: true, reason: 'unsupported-extension', tool: 'media-allowlist' }
+  }
+
   const termuxOpen = '/data/data/com.termux/files/usr/bin/termux-open'
   if (fs.existsSync(termuxOpen)) {
-    const r = spawnSync(termuxOpen, [filePath], { stdio: 'ignore' })
+    const st = fs.statSync(filePath, { throwIfNoEntry: false })
+    const target = (revealOnly && !st?.isDirectory() && !PREVIEWABLE_MEDIA_EXTS.has(ext))
+      ? path.dirname(filePath)
+      : filePath
+    const r = spawnSync(termuxOpen, [target], { stdio: 'ignore' })
     return { opened: r.status === 0, tool: 'termux-open' }
   }
   if (os.platform() === 'darwin') {
@@ -494,7 +544,8 @@ export function openInSystemViewer (filePath, { revealOnly = false } = {}) {
     spawnSync(bin, args, { stdio: 'ignore' })
     return { opened: true, tool: bin }
   }
-  const target = revealOnly ? path.dirname(filePath) : filePath
+  const st = fs.statSync(filePath, { throwIfNoEntry: false })
+  const target = (revealOnly && !st?.isDirectory()) ? path.dirname(filePath) : filePath
   const r = spawnSync('xdg-open', [target], { stdio: 'ignore' })
   return { opened: r.status === 0, tool: 'xdg-open' }
 }

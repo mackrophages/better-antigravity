@@ -17,10 +17,12 @@ const LOOKS = new Set([
 const MCP_LOOKS = /^(?:mcp__|mcp_).+?[_/](?:get|list|read|search|find|fetch|query|view|show|describe|lookup|check|count|stat)(?:_|$)/i
 const MCP_WRITES = /(?:^|_)(?:write|edit|replace|create|update|delete|remove|move|rename|apply|fix|set|save|patch|insert|put|add|append|upsert|store|upload|download|copy|clear|reset|commit|merge|run|exec|execute|format|generate|install|import|sync|push|pull|restore|extract)(?:_|$)/i
 
+const SAFE_TIMELINE_CLI_RE = /^\s*(?:node\s+)?(?:"[^"`$\\]*\/timeline-cli\.mjs"|'[^']*\/timeline-cli\.mjs'|[a-zA-Z0-9_./~-]*\/timeline-cli\.mjs)(?:\s+(?:[a-zA-Z0-9_./:#-]+|"[^"`$\\]*"|'[^']*'))*\s*$/
+
 export function mayWrite (tool, input = {}) {
   if (tool === 'run_command' || tool === 'Bash') {
     const cmd = typeof input.CommandLine === 'string' ? input.CommandLine : input.command
-    if (typeof cmd === 'string' && cmd.includes('timeline-cli.mjs')) return false
+    if (typeof cmd === 'string' && !/[;&|`><$()\n]/.test(cmd) && SAFE_TIMELINE_CLI_RE.test(cmd)) return false
     return !(typeof cmd === 'string' && readOnly(cmd))
   }
   if (tool === 'call_mcp_tool') {

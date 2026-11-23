@@ -13,12 +13,14 @@ import {
   formatUntilSeconds,
   visibleWidth,
   ensureStatusLineInstalled,
+  repoKey,
+  safeSid,
   setPluginConfig,
   getPluginConfig,
   writeState
 } from '../shared/store.mjs'
 import { summarizeTranscript } from '../shared/transcript.mjs'
-import { formatStatusLine } from '../scripts/better-statusline.mjs'
+import { formatStatusLine } from '../shared/better-statusline.mjs'
 
 function withTempEnv (fn) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'better-agy-test-'))
@@ -55,22 +57,29 @@ function enableFakePlugins (tmp, names) {
   }
 }
 
-describe('shared/store helpers', () => {
-  it('formats token counts half-up like midudev token-meter', () => {
+describe('shared/store helpers & wcwidth', () => {
+  it('formats token counts half-up, measures wide CJK/emoji wcwidth, and sanitizes safeSid', () => {
     assert.equal(shortTokens(0), '0')
     assert.equal(shortTokens(340), '340')
     assert.equal(shortTokens(1200), '1.2k')
     assert.equal(shortTokens(999_950), '1.0M')
-  })
 
-  it('formats reset durations concisely', () => {
     assert.equal(formatUntilSeconds(0), '')
     assert.equal(formatUntilSeconds(2520), '42m')
     assert.equal(formatUntilSeconds(7800), '2h 10m')
     assert.equal(formatUntilSeconds(273600), '3d 4h')
+
+    // Unified wcwidth: ⏪ = 2 cols, ⏹\uFE0E = 1 col, bare ⏸ = 2 cols, CJK/🚀 = 2 cols each
+    assert.equal(visibleWidth('\x1b[38;5;75m⏪ #60\x1b[0m'), 6)
+    assert.equal(visibleWidth('\x1b[94m⏹\uFE0E\x1b[0m'), 1)
+    assert.equal(visibleWidth('⏸ after (2)'), 12)
+    assert.equal(visibleWidth('中文🚀'), 6)
+
+    assert.equal(safeSid('../../../etc/passwd'), 'etcpasswd')
+    assert.equal(safeSid('../../..', 'default'), 'default')
   })
 
-  it('saves plugin config and installs statusLine with backup', () => {
+  it('saves plugin config, verifies SHA-256 + smoke test on C11 binary, and backs up settings.json', () => {
     withTempEnv((tmp) => {
       const settingsFile = process.env.BETTER_AGY_SETTINGS_JSON
       fs.mkdirSync(path.dirname(settingsFile), { recursive: true })
@@ -79,18 +88,22 @@ describe('shared/store helpers', () => {
       setPluginConfig('context-meter', { warnAt: 55 })
       assert.equal(getPluginConfig('context-meter', { warnAt: 50, dangerAt: 75 }).warnAt, 55)
 
-      const srcScript = path.join(REPO_ROOT, 'scripts', 'better-statusline.mjs')
+      const srcScript = path.join(REPO_ROOT, 'shared', 'better-statusline.mjs')
       const res = ensureStatusLineInstalled(srcScript)
       assert.equal(res.installed, true)
       assert.equal(res.updatedSettings, true)
       assert.equal(fs.existsSync(`${settingsFile}.bak-better-agy`), true)
+
+      if (['linux', 'android'].includes(process.platform)) {
+        assert.equal(res.native, true, 'Expected native C11 statusLine binary to compile and pass smoke test on Linux')
+        assert.equal(fs.existsSync(`${res.targetScript}.sha256`), true)
+      }
 
       const saved = JSON.parse(fs.readFileSync(settingsFile, 'utf8'))
       assert.equal(saved.model, 'Gemini 4 Carbon (High)')
       assert.equal(saved.statusLine.stack_with_default, true)
       assert.match(saved.statusLine.command, /better-statusline(?:\.mjs)?$/)
 
-      // Verify tm-hook session-start never downgrades native binary back to Node JS
       if (res.native) {
         const tmHook = path.join(REPO_ROOT, 'plugins', 'time-machine', 'scripts', 'tm-hook.mjs')
         const hookRes = spawnSync(process.execPath, [tmHook, 'session-start'], {
@@ -106,22 +119,45 @@ describe('shared/store helpers', () => {
   })
 })
 
-describe('scripts/better-statusline.mjs', () => {
-  it('renders enabled widgets and fits narrow terminal widths without overflowing', () => {
+describe('better-statusline JS & C11 golden parity matrix', () => {
+  it('renders per-model context identifiers, animated spinners, >250KB Time Machine states, ISO reset_time, \\uXXXX escapes, and control-char stripping identically in C11 and JS', () => {
     withTempEnv((tmp) => {
-      enableFakePlugins(tmp, ['context-meter', 'token-meter', 'sub-meter', 'narrator'])
-      setPluginConfig('narrator', { enabled: true, language: 'es' })
+      enableFakePlugins(tmp, [
+        'context-meter', 'token-meter', 'sub-meter',
+        'time-machine', 'after', 'think-hard', 'use-hydrogen', 'narrator'
+      ])
+      setPluginConfig('narrator', { enabled: true, language: 'es\x1b]0;INJECT\x07' })
 
-      const payload = {
+      const resNative = ensureStatusLineInstalled(path.join(REPO_ROOT, 'shared', 'better-statusline.mjs'), {
+        force: true,
+        preferNative: true
+      })
+      if (['linux', 'android'].includes(process.platform)) {
+        assert.equal(resNative.native, true, 'C11 compiler must be present and mandatory on Linux/CI')
+      }
+
+      const runC = (rawJsonString, nowMs) => {
+        const cProc = spawnSync(resNative.targetScript, [], {
+          env: { ...process.env, BETTER_AGY_NOW_MS: String(nowMs) },
+          input: rawJsonString,
+          encoding: 'utf8'
+        })
+        assert.equal(cProc.status, 0, cProc.stderr)
+        return cProc.stdout.replace(/\n$/, '')
+      }
+
+      const basePayload = {
         conversation_id: 'conv-1',
-        terminal_width: 120,
+        cwd: '/tmp/proj-alpha',
+        terminal_width: 160,
+        model: { id: 'gemini-4-carbon-high', display_name: 'Gemini 4 Carbon (High)' },
         context_window: {
-          total_input_tokens: 12400,
+          total_input_tokens: 184000,
           total_output_tokens: 3100,
-          context_window_size: 200000,
+          context_window_size: 1048576,
           used_percentage: 58.2,
           current_usage: {
-            input_tokens: 1200,
+            input_tokens: 184000,
             output_tokens: 340,
             cache_read_input_tokens: 4100,
             cache_creation_input_tokens: 0
@@ -133,19 +169,35 @@ describe('scripts/better-statusline.mjs', () => {
         }
       }
 
-      const wide = formatStatusLine({ ...payload, agent_state: 'idle' }, { nowMs: 16_000 })
-      assert.equal(wide.includes('38;5;208m'), false, 'Google Gemini bucket uses electric blue, not amber')
-      assert.equal(wide.includes('38;5;75m'), true, 'Antigravity electric blue ANSI must color Gemini gem and quota bar')
-      const plainWide = wide.replace(/\x1b\[[0-9;]*m/g, '')
-      assert.match(plainWide, /✦ 5h ━━━━━━──── 58% ↻ 2h 10m/)
-      assert.match(plainWide, /⏵ narrator on · ES/)
-      assert.ok(visibleWidth(wide) <= 118)
+      // 1. Per-model context window identifier (`✦ context 58%/1M · /compact`, `✻ .../200k`, `❂ .../128k`)
+      const wideGem = formatStatusLine({ ...basePayload, agent_state: 'idle' }, { nowMs: 16_000 })
+      const plainGem = wideGem.replace(/\x1b\[[0-9;]*m/g, '')
+      assert.match(plainGem, /✦ context 58%\/1M · \/compact/)
+      assert.match(plainGem, /✦ 5h ━━━━━━──── 58% ↻ 2h 10m/)
+      // Narrator language had `\x1b]0;INJECT\x07` stripped cleanly!
+      assert.equal(wideGem.includes('\x07'), false)
+      assert.match(plainGem, /⏵ narrator on · ES\]0;INJECT/)
 
-      // Verify animated spinner sequences while working (`· ✢ ✳ ✶ ✻ ✽` for Claude, `· ✧ ✦ ◇ ◈ ❖` for Gemini, `· ∘ ○ ◎ ◉ ❂` for GPT)
+      const wideClaude = formatStatusLine({
+        ...basePayload,
+        agent_state: 'idle',
+        model: { id: 'claude-opus-5-5-high', display_name: 'Claude Opus 5.5 (High)' },
+        context_window: { ...basePayload.context_window, context_window_size: 200_000, used_percentage: 81.4 }
+      }, { nowMs: 16_000 })
+      assert.match(wideClaude.replace(/\x1b\[[0-9;]*m/g, ''), /✻ context 81%\/200k · new session/)
+
+      const wideGpt = formatStatusLine({
+        ...basePayload,
+        agent_state: 'idle',
+        model: { id: 'gpt-oss-120b-medium', display_name: 'GPT-OSS 120B (Medium)' },
+        context_window: { ...basePayload.context_window, context_window_size: 131_072, used_percentage: 34.0 }
+      }, { nowMs: 16_000 })
+      assert.match(wideGpt.replace(/\x1b\[[0-9;]*m/g, ''), /❂ context 34%\/128k/)
+
+      // 2. Animated spinner frames for Claude (`· ✢ ✳ ✶ ✻ ✽`), Gemini (`· ✧ ✦ ◇ ◈ ❖`), and GPT (`❂`)
       const mixedPayload = {
-        ...payload,
+        ...basePayload,
         agent_state: 'working',
-        model: { id: 'Gemini 4 Carbon (High)', display_name: 'Gemini 4 Carbon (High)' },
         quota: {
           '3p-5h': { remaining_fraction: 0.8, reset_in_seconds: 14400 },
           '3p-weekly': { remaining_fraction: 0.9, reset_in_seconds: 518400 },
@@ -155,83 +207,120 @@ describe('scripts/better-statusline.mjs', () => {
       }
       const claudeFrames = ['·', '✢', '✳', '✶', '✻', '✽']
       for (let f = 0; f < claudeFrames.length; f++) {
-        const out = formatStatusLine(mixedPayload, { nowMs: f * 300 }) // < 4000ms stays on bucket 0 (3p-5h)
-        assert.equal(out.includes('38;5;208m'), true)
-        assert.ok(out.replace(/\x1b\[[0-9;]*m/g, '').includes(`${claudeFrames[f]} 5h ━━──────── 20% ↻ 4h 0m`), `Missing Claude frame ${f}`)
+        const out = formatStatusLine(mixedPayload, { nowMs: f * 300 })
+        assert.ok(out.replace(/\x1b\[[0-9;]*m/g, '').includes(`${claudeFrames[f]} 5h ━━──────── 20% ↻ 4h 0m`))
       }
 
-      const gemFrames = ['·', '✧', '✦', '◇', '◈', '❖']
-      for (let f = 0; f < gemFrames.length; f++) {
-        // Bucket 2 (gemini-5h) is active during [8000..11999]; 9000 / 300 = 30 (mod 10 == 0!)
-        const out = formatStatusLine(mixedPayload, { nowMs: 9_000 + f * 300 })
-        assert.equal(out.includes('38;5;75m'), true)
-        assert.ok(out.replace(/\x1b\[[0-9;]*m/g, '').includes(`${gemFrames[f]} 5h ━━━━━━──── 58% ↻ 2h 10m`), `Missing Gemini frame ${f}`)
-      }
+      // 3. Large >260 KB Time Machine state file with 60 states (regression I2)
+      const rKeyAlpha = repoKey('/tmp/proj-alpha')
+      const bigStates = Array.from({ length: 60 }, (_, idx) => ({
+        id: idx + 1,
+        parent: idx === 0 ? null : idx,
+        tree: 'a'.repeat(40),
+        head: 'b'.repeat(40),
+        commit: 'c'.repeat(40),
+        label: `turn snapshot #${idx + 1} with detailed description`,
+        prompt: 'x'.repeat(300),
+        at: 1_700_000_000_000 + idx * 1000,
+        files: Array.from({ length: 65 }, (__, fi) => ({
+          path: `src/modules/feature-${idx}/component-${fi}.tsx`,
+          status: 'M',
+          added: 12,
+          removed: 4
+        }))
+      }))
+      // Deliberately put `states` FIRST (legacy layout without top-level `maxId`) to prove 8 MB reader works too!
+      const tmLegacyPath = path.join(process.env.BETTER_AGY_HOME, 'time-machine', rKeyAlpha, 'conv-1.json')
+      fs.mkdirSync(path.dirname(tmLegacyPath), { recursive: true })
+      fs.writeFileSync(tmLegacyPath, JSON.stringify({ states: bigStates, cursor: 42 }))
+      assert.ok(fs.statSync(tmLegacyPath).size > 250_000, 'Fixture must exceed 250 KB (> 64 KB old cap)')
 
-      const gptMixed = {
-        ...mixedPayload,
-        model: { id: 'gpt-oss-120b-medium', display_name: 'GPT-OSS 120B (Medium)' }
-      }
-      const rotGpt = formatStatusLine(gptMixed, { nowMs: 5 * 300 }) // frame 5 -> ❂
-      assert.equal(rotGpt.includes('38;5;252m'), true, 'GPT icon uses bright silver')
-      assert.equal(rotGpt.includes('38;5;247m'), true, 'GPT bar uses slate gray')
-      assert.equal(rotGpt.includes('38;5;208m'), false, 'GPT mode does not use amber')
-      assert.match(rotGpt.replace(/\x1b\[[0-9;]*m/g, ''), /❂ 5h ━━──────── 20% ↻ 4h 0m/)
-
-      const veryWide = formatStatusLine({ ...payload, terminal_width: 150 }, { nowMs: 16_000 })
-      assert.match(veryWide.replace(/\x1b\[[0-9;]*m/g, ''), /context 58% · \/compact/)
-
-      const narrow = formatStatusLine({ ...payload, terminal_width: 55 }, { nowMs: 16_000 })
-      assert.ok(visibleWidth(narrow) <= 53)
-
-      // Verify optional native C11 accelerator compiles cleanly and matches JS output byte-for-byte
-      const resNative = ensureStatusLineInstalled(path.join(REPO_ROOT, 'scripts', 'better-statusline.mjs'), {
-        force: true,
-        preferNative: true
+      // 4. Terminal escape injection in `after` queue + Unicode `\uXXXX` + surrogate pair `cwd` (regressions I4 & M1)
+      const unicodeCwd = '/tmp/café-🚀'
+      const rKeyUnicode = repoKey(unicodeCwd)
+      writeState(`after/${rKeyUnicode}-conv-1.json`, {
+        paused: false,
+        running: { id: 1, text: '\x1b]0;PWNED\x07\x1b]52;c;YWJj\x07fix\ncafé 🚀タスク完了' },
+        items: [{ id: 2, text: 'next' }]
       })
+
+      // 5. Narrator PID recycling guard (regression M4): process.pid is alive (`node`), NOT `speak-worker`!
+      writeState('narrator-runtime.json', { speakingPid: process.pid, startedAt: 15_000, synthesizer: 'espeak-ng' })
+      writeState('turn-flags/think-hard-conv-1.json', { thinkHard: true })
+      writeState('turn-flags/use-hydrogen-conv-1.json', { useHydrogen: true })
+
+      // 6. ISO-8601 `reset_time` without `reset_in_seconds` + weekly bucket with < 6h left (regressions I3 & M2)
+      const isoBaseMs = Date.parse('2026-11-22T12:00:00.000Z')
+      const isoPayload = {
+        conversation_id: 'conv-1',
+        cwd: '/tmp/proj-alpha',
+        agent_state: 'idle',
+        terminal_width: 180,
+        model: { id: 'claude-sonnet-5-5-high', display_name: 'Claude Sonnet 5.5 (High)' },
+        context_window: { context_window_size: 200_000, used_percentage: 45, current_usage: { input_tokens: 90_000, output_tokens: 500 } },
+        quota: {
+          '3p-weekly': { remaining_fraction: 0.5, reset_time: '2026-11-22T12:30:00+00:00' }, // 30m left <= 6h, MUST stay "week"!
+          'gemini-session': { remaining_fraction: 0.5, reset_time: '2026-11-22T15:00:00.400+02:00' } // 13:00Z = 1h 0m left!
+        }
+      }
+      setPluginConfig('sub-meter', { display: 'both' })
+
+      const isoJs = formatStatusLine(isoPayload, { nowMs: isoBaseMs })
+      const isoPlain = isoJs.replace(/\x1b\[[0-9;]*m/g, '')
+      assert.match(isoPlain, /✻ week ━━━━━───── 50% ↻ 30m/, 'Weekly bucket <6h from reset must stay labeled "week"')
+      assert.match(isoPlain, /✦ 5h ━━━━━───── 50% ↻ 1h 0m/, 'ISO-8601 +02:00 reset_time must compute 1h 0m')
+      assert.match(isoPlain, /⏪ #42\/60/, '>250 KB Time Machine state must show #42/60')
+      assert.doesNotMatch(isoPlain, /narrating/, 'Non-speak-worker PID must not falsely display narrating')
+
       if (resNative.native) {
-        writeState('turn-flags/conv-1.json', { thinkHard: true, useHydrogen: true })
-        enableFakePlugins(tmp, ['think-hard', 'use-hydrogen'])
-        for (const width of [150, 120, 85, 55]) {
-          for (const [pCase, tNow] of [
-            [{ ...payload, agent_state: 'idle' }, 16_000],
-            [mixedPayload, 300],
-            [mixedPayload, 1_500],
-            [mixedPayload, 9_600],
-            [gptMixed, 1_200]
-          ]) {
-            const testPayload = { ...pCase, terminal_width: width }
-            const jsOut = formatStatusLine(testPayload, { nowMs: tNow })
-            const cProc = spawnSync(resNative.targetScript, [], {
-              env: { ...process.env, BETTER_AGY_NOW_MS: String(tNow) },
-              input: JSON.stringify(testPayload),
-              encoding: 'utf8'
-            })
-            assert.equal(cProc.status, 0, cProc.stderr)
-            assert.equal(cProc.stdout.replace(/\n$/, ''), jsOut, `C11 vs JS mismatch at width=${width} tNow=${tNow}`)
+        assert.equal(runC(JSON.stringify(isoPayload), isoBaseMs), isoJs, 'ISO-8601 + >250KB TM parity mismatch')
+
+        // Raw `\u00e9` + surrogate pair `\ud83d\ude80` in JSON input (regression M1 + I4 + wcwidth)
+        const rawUnicodeJson =
+          '{"conversation_id":"conv-1","cwd":"/tmp/caf\\u00e9-\\ud83d\\ude80","agent_state":"working",' +
+          '"terminal_width":170,"model":"gpt-oss-120b-medium",' +
+          '"context_window":{"context_window_size":131072,"used_percentage":22,"current_usage":{"input_tokens":28000,"output_tokens":120}}}'
+        const parsedUnicode = JSON.parse(rawUnicodeJson)
+        for (const width of [180, 120, 85, 55, 1e300]) {
+          const jsU = formatStatusLine({ ...parsedUnicode, terminal_width: width }, { nowMs: isoBaseMs + 900 })
+          assert.equal(jsU.includes('\x07'), false, 'No BEL byte may survive sanitizeInlineText')
+          assert.equal(jsU.includes('\x1b]'), false, 'No OSC sequence may survive sanitizeInlineText')
+          if (width === 180) {
+            assert.match(jsU.replace(/\x1b\[[0-9;]*m/g, ''), /after ▶ \]0;PWNED\]52;c;YWJjfix /)
           }
+          const rawWithWidth = rawUnicodeJson.replace('"terminal_width":170', `"terminal_width":${width}`)
+          const cU = runC(rawWithWidth, isoBaseMs + 900)
+          assert.equal(cU, jsU, `Unicode/escape/wcwidth parity mismatch at width=${width}`)
         }
 
-        // Also verify quota-cache.json countdown & expiration parity when live payload omits quota
-        const noQuotaPayload = { ...payload, quota: undefined, terminal_width: 120 }
-        for (const futureNow of [16_000 + 600_000, 16_000 + 9_000_000]) {
-          const jsCached = formatStatusLine(noQuotaPayload, { nowMs: futureNow })
-          const cCached = spawnSync(resNative.targetScript, [], {
-            env: { ...process.env, BETTER_AGY_NOW_MS: String(futureNow) },
-            input: JSON.stringify(noQuotaPayload),
-            encoding: 'utf8'
-          })
-          assert.equal(cCached.status, 0, cCached.stderr)
-          assert.equal(cCached.stdout.replace(/\n$/, ''), jsCached, `Cached quota C11 vs JS mismatch at t=${futureNow}`)
+        // Traversal conversation_id `../../../etc/passwd` parity (regression M3)
+        const travPayload = { ...isoPayload, conversation_id: '../../../etc/passwd', terminal_width: 140 }
+        assert.equal(runC(JSON.stringify(travPayload), isoBaseMs), formatStatusLine(travPayload, { nowMs: isoBaseMs }))
+
+        // Regression R2-5 & R2-8: giant reset_in_seconds (no RangeError!), negative/over-100 used_percentage,
+        // timezone-less reset_time, `\u0000` inside strings, and duplicate JSON keys!
+        const edgeCases = [
+          '{"conversation_id":"conv-1","terminal_width":150,"context_window":{"context_window_size":200000,"used_percentage":-5,"current_usage":{"input_tokens":100,"output_tokens":10}}}',
+          '{"conversation_id":"conv-1","terminal_width":150,"context_window":{"context_window_size":200000,"used_percentage":1000000000,"current_usage":{"input_tokens":100,"output_tokens":10}}}',
+          '{"conversation_id":"conv-1","terminal_width":150,"quota":{"gemini-5h":{"remaining_fraction":0.5,"reset_in_seconds":1e30},"3p-weekly":{"remaining_fraction":0.2,"reset_time":"2026-11-22T15:00:00"}}}',
+          '{"conversation_id":"conv-1","cwd":"/tmp/wrong","cwd":"/tmp/caf\\u0000\\u00e9-\\ud83d\\ude80","agent_state":"working","terminal_width":160}'
+        ]
+        for (const rawEdge of edgeCases) {
+          const jsEdge = formatStatusLine(JSON.parse(rawEdge), { nowMs: isoBaseMs })
+          const cEdge = runC(rawEdge, isoBaseMs)
+          assert.equal(cEdge, jsEdge, `Edge-case C11 vs JS parity mismatch on: ${rawEdge}`)
         }
+
+        // Quota cache perms must be 0600 (Pulido)
+        const qStat = fs.statSync(path.join(process.env.BETTER_AGY_HOME, 'quota-cache.json'))
+        assert.equal(qStat.mode & 0o777, 0o600, 'quota-cache.json must have 0600 permissions')
       }
     })
   })
 
   it('returns empty string when no HUD plugins are enabled', () => {
     withTempEnv(() => {
-      const line = formatStatusLine({ terminal_width: 100 })
-      assert.equal(line, '')
+      assert.equal(formatStatusLine({ terminal_width: 100 }), '')
     })
   })
 })

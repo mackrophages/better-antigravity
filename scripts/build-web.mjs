@@ -31,8 +31,8 @@ const ORDER = [
   {
     id: 'context-meter',
     title: 'Context Meter',
-    summary: 'Mide qué tan llena está la ventana de contexto en `statusLine`: gris bajo 50 %, amarillo desde 50 % para recordar `/compact` y rojo desde 75 % con aviso inline sin gastar tokens del modelo.',
-    demoHtml: `<div class="demo"><p class="line footer-line"><span class="dim">ventana activa</span><span id="context-meter" class="warn">context 58% · /compact</span></p><hr class="tm-rule"><p class="line"><span class="p">&gt; </span>revisa el módulo de recepción de pedidos</p></div>`
+    summary: 'Mide qué tan llena está la ventana de contexto en `statusLine` identificando la familia y capacidad real de cada modelo (`✦ 1M` Gemini, `✻ 200k` Claude, `❂ 128k` GPT): gris bajo 50 %, amarillo desde 50 % (`/compact`) y rojo desde 75 % con aviso inline.',
+    demoHtml: `<div class="demo"><p class="line footer-line"><span class="dim">ventana por modelo</span><span id="context-meter" class="warn">✦ context 58%/1M · /compact</span></p><hr class="tm-rule"><p class="line"><span class="p">&gt; </span>revisa el módulo de recepción de pedidos</p></div>`
   },
   {
     id: 'commit',
@@ -78,15 +78,26 @@ const ORDER = [
   }
 ]
 
+function compactEmbeddedSource (rel, raw) {
+  if (rel.endsWith('.mjs')) {
+    return raw
+      .split('\n')
+      .filter((line, idx) => idx === 0 || !/^\s*\/\//.test(line))
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+  }
+  return raw
+}
+
 function collectFiles (dir, prefix = '') {
   const out = {}
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (e.name === 'lib' || e.name.startsWith('.')) continue
+    if (e.name === 'lib' || e.name === 'assets' || e.name.startsWith('.')) continue
     const full = path.join(dir, e.name)
     const rel = prefix ? `${prefix}/${e.name}` : e.name
     if (e.isDirectory()) Object.assign(out, collectFiles(full, rel))
-    else if (/\.(json|md|mjs|svg)$/i.test(e.name) && fs.statSync(full).size < 64_000) {
-      out[rel] = fs.readFileSync(full, 'utf8')
+    else if (/\.(json|md|mjs)$/i.test(e.name) && fs.statSync(full).size < 64_000) {
+      out[rel] = compactEmbeddedSource(rel, fs.readFileSync(full, 'utf8'))
     }
   }
   return out
@@ -97,14 +108,15 @@ const svgById = {}
 for (const item of ORDER) {
   const pDir = path.join(PLUGINS_DIR, item.id)
   const files = collectFiles(pDir)
-  svgById[item.id] = files['assets/logo.svg'] || ''
+  const logoPath = path.join(pDir, 'assets', 'logo.svg')
+  svgById[item.id] = fs.existsSync(logoPath) ? fs.readFileSync(logoPath, 'utf8') : ''
   catalog[item.id] = {
     title: item.title,
     files
   }
 }
 
-const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 const inlineCode = (s) => escapeHtml(s).replace(/`([^`]+)`/g, '<code>$1</code>')
 
 const cardsHtml = ORDER.map((item) => {
@@ -570,10 +582,10 @@ ${cardsHtml}
 
       const ctxEl = $('#context-meter');
       const CTX = [
-        { t: 'context 58% · /compact', c: 'warn' },
-        { t: 'context 82% · new session', c: 'err' },
-        { t: 'context ~16%', c: 'dim' },
-        { t: 'context 34%', c: 'dim' }
+        { t: '✦ context 58%/1M · /compact', c: 'warn' },
+        { t: '✻ context 82%/200k · new session', c: 'err' },
+        { t: '✦ context ~16%/1M', c: 'dim' },
+        { t: '❂ context 34%/128k', c: 'dim' }
       ];
       let cIdx = 0;
       setInterval(() => {
@@ -691,8 +703,8 @@ ${cardsHtml}
 </html>
 `
 
-function minifyCssBlock (doc) {
-  return doc.replace(/<style>([\s\S]*?)<\/style>/, (_, css) => {
+function minifyDeliverable (doc) {
+  const cssCompacted = doc.replace(/<style>([\s\S]*?)<\/style>/, (_, css) => {
     const compact = css
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/\s*\n\s*/g, '')
@@ -701,10 +713,24 @@ function minifyCssBlock (doc) {
       .replace(/;}/g, '}')
     return `<style>${compact}</style>`
   })
+  const jsCompacted = cssCompacted.replace(/<script>([\s\S]*?)<\/script>/, (_, js) => {
+    const lines = js
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith('//'))
+    return `<script>\n${lines.join('\n')}\n</script>`
+  })
+  // Strip purely decorative HTML indentation outside <script>/<style> while keeping line 1 intact
+  const parts = jsCompacted.split(/(<script>[\s\S]*?<\/script>)/)
+  parts[0] = parts[0].split('\n').map((l, idx) => (idx === 0 ? l : l.trim())).filter(Boolean).join('\n') + '\n'
+  if (parts[2]) {
+    parts[2] = '\n' + parts[2].split('\n').map(l => l.trim()).filter(Boolean).join('\n') + '\n'
+  }
+  return parts.join('')
 }
 
 fs.mkdirSync(path.join(ROOT, 'web'), { recursive: true })
 const outPath = path.join(ROOT, 'web', 'index.html')
-const finalHtml = minifyCssBlock(html)
+const finalHtml = minifyDeliverable(html)
 fs.writeFileSync(outPath, finalHtml, 'utf8')
 console.log(`Built self-contained web/index.html (${(Buffer.byteLength(finalHtml) / 1024).toFixed(1)} KB)`)

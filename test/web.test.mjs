@@ -38,6 +38,11 @@ describe('web/index.html offline deliverable contract', () => {
     assert.match(html, /install\.sh /)
 
     const wf = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'pages.yml'), 'utf8')
+    assert.match(wf, /test:/, 'CI workflow must define a blocking test job')
+    assert.match(wf, /node --test/, 'CI test job must execute node --test')
+    assert.match(wf, /-Werror/, 'CI test job must compile C11 sources with -Werror')
+    assert.match(wf, /sync-shared\.mjs --check/, 'CI test job must verify shared library sync')
+    assert.match(wf, /needs:\s*test/, 'Pages build job must wait for test job completion')
     assert.match(wf, /needs:\s*build/, 'Pages deploy job must wait for build job completion')
     assert.match(wf, /actions\/upload-pages-artifact@v[5-9]/, 'Must use upload-pages-artifact v5+')
     assert.match(wf, /actions\/deploy-pages@v[5-9]/, 'Must use deploy-pages v5+')

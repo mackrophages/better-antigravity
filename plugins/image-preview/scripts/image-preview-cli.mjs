@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
 import path from 'node:path'
-import { openInSystemViewer, renderImageCard } from './lib/pixels.mjs'
+import { PREVIEWABLE_MEDIA_EXTS, openInSystemViewer, renderImageCard } from './lib/pixels.mjs'
 
 let cwd = process.cwd()
 const raw = process.argv.slice(2)
@@ -11,7 +11,7 @@ for (let i = 0; i < raw.length; i++) {
   else args.push(raw[i])
 }
 
-const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tiff', '.svg'])
+const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tiff', '.tif', '.svg'])
 
 function findRecentImages (dir, maxDepth = 3) {
   const found = []
@@ -44,7 +44,16 @@ if (sub === 'open') {
     console.error(`File not found: ${resolved}`)
     process.exit(1)
   }
+  const ext = path.extname(resolved).toLowerCase()
+  if (!PREVIEWABLE_MEDIA_EXTS.has(ext)) {
+    console.error(`Refused to open unsupported file type "${ext || '(none)'}": only image, PDF, and video files are permitted.`)
+    process.exit(1)
+  }
   const res = openInSystemViewer(resolved)
+  if (res.refused) {
+    console.error(`Refused to open unsupported file: ${resolved}`)
+    process.exit(1)
+  }
   console.log(res.opened ? `Opened ${resolved} via ${res.tool}.` : `Could not launch viewer (${res.tool}) for ${resolved}.`)
   process.exit(0)
 }

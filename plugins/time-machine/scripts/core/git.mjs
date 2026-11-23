@@ -92,7 +92,7 @@ export async function locate (run, cwd, session) {
     if (nl === -1) return null
     const top = out.slice(0, nl).trim()
     const gitDir = out.slice(nl + 1).trim()
-    const safeSession = String(session || 'default').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 36) || 'default'
+    const safeSession = String(session || 'default').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64) || 'default'
     return { top, gitDir, index: `${gitDir}/time-machine-${safeSession}.index` }
   } catch {
     return null

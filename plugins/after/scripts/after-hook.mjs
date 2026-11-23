@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 // Antigravity lifecycle hooks for After:
 // - session-start: ensures statusLine is installed
-// - pre-invocation: marks workspace queue busy while a turn runs
-// - stop: archives finished task and, when unpaused with pending items, returns
-//         {"decision": "continue", "reason": "..."} so queued tasks run in FIFO order!
+// - pre-invocation: marks workspace queue busy under exclusive file lock
+// - stop: atomically archives finished task and dequeues next FIFO item under exclusive file lock
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -12,7 +11,7 @@ import {
   readStdinJson,
   readState,
   repoKey,
-  writeState
+  updateState
 } from './lib/store.mjs'
 import { markIdle, normalizeState, takeNext } from './core/queue-engine.mjs'
 
@@ -28,16 +27,18 @@ const cwd = payload.cwd || payload.workspacePaths?.[0] || process.cwd()
 const qPath = `after/${repoKey(cwd)}.json`
 
 if (event === 'session-start') {
-  try { ensureStatusLineInstalled(path.join(here, 'lib', 'better-statusline.mjs')) } catch {}
+  try { ensureStatusLineInstalled(path.join(here, 'lib', 'better-statusline.mjs'), { preferNative: true }) } catch {}
   process.stdout.write('{}\n')
   process.exit(0)
 }
 
 if (event === 'pre-invocation') {
-  const existing = readState(qPath, null)
-  if (existing) {
-    const st = normalizeState(existing, { cwd })
-    if (!st.busy) writeState(qPath, { ...st, busy: true })
+  if (readState(qPath, null) !== null) {
+    updateState(qPath, null, (curr) => {
+      if (!curr) return normalizeState(null, { cwd })
+      const st = normalizeState(curr, { cwd })
+      return st.busy ? st : { ...st, busy: true }
+    })
   }
   process.stdout.write('{}\n')
   process.exit(0)
@@ -49,40 +50,42 @@ if (event === 'stop') {
     process.exit(0)
   }
 
-  const raw = readState(qPath, null)
-  if (!raw) {
+  if (readState(qPath, null) === null) {
     process.stdout.write('{}\n')
     process.exit(0)
   }
 
   const reason = String(payload.terminationReason || '')
   const aborted = ['ERROR', 'USER_CANCELED', 'MAX_INVOCATIONS', 'MAX_FORCED_INVOCATIONS', 'MAX_TOKEN_BUDGET_EXCEEDED', 'error'].includes(reason)
-
-  let st = normalizeState(raw, { cwd })
-  st = markIdle(st, { status: aborted ? 'stopped' : 'done' })
-
-  // Do not pop a task right when the user just ran `/after pause` or if aborted
   const lastInput = String(payload.lastUserInput || '')
-  const justManagedQueue = /^\s*\/(?:after|before)\b/i.test(lastInput) && st.paused
 
-  if (aborted || st.paused || justManagedQueue || st.items.length === 0) {
-    writeState(qPath, st)
+  let poppedItem = null
+  let remainingCount = 0
+
+  updateState(qPath, null, (curr) => {
+    let st = normalizeState(curr, { cwd })
+    st = markIdle(st, { status: aborted ? 'stopped' : 'done' })
+    const justManagedQueue = /^\s*\/(?:after|before)\b/i.test(lastInput) && st.paused
+    if (aborted || st.paused || justManagedQueue || st.items.length === 0) {
+      poppedItem = null
+      remainingCount = st.items.length
+      return st
+    }
+    const { state: nextState, item } = takeNext(st)
+    poppedItem = item
+    remainingCount = nextState.items.length
+    return nextState
+  })
+
+  if (!poppedItem) {
     process.stdout.write('{}\n')
     process.exit(0)
   }
 
-  const { state: nextState, item } = takeNext(st)
-  writeState(qPath, nextState)
-  if (!item) {
-    process.stdout.write('{}\n')
-    process.exit(0)
-  }
-
-  const remaining = nextState.items.length
-  const tail = remaining > 0 ? ` (${remaining} more queued behind this)` : ''
+  const tail = remainingCount > 0 ? ` (${remainingCount} more queued behind this)` : ''
   process.stdout.write(JSON.stringify({
     decision: 'continue',
-    reason: `[After Queue -> Next Task #${item.id}${tail}]: ${item.text}`
+    reason: `[After Queue -> Next Task #${poppedItem.id}${tail}]: ${poppedItem.text}`
   }) + '\n')
   process.exit(0)
 }

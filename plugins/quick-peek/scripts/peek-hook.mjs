@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // PostInvocation hook: when `autoCard: true`, appends a zero-token user_markdown
-// Quick Peek summary card. Uses lazy imports so disabled mode skips loading grammars.
+// Quick Peek summary card using an O(1) tail read of transcript.jsonl.
 import fs from 'node:fs'
 import path from 'node:path'
 import { getPluginConfig, isHeadless, isSubcall, readStdinJson } from './lib/store.mjs'
@@ -22,19 +22,19 @@ if (!payload.transcriptPath) {
   process.exit(0)
 }
 
-const [{ summarizeTranscript }, { languageOf, pathsIn, resolvePath }] = await Promise.all([
+const [{ readLatestAnswerTail }, { languageOf, pathsIn, resolvePath }] = await Promise.all([
   import('./lib/transcript.mjs'),
   import('./core/peek-engine.mjs')
 ])
 
 const cwd = payload.cwd || payload.workspacePaths?.[0] || process.cwd()
-const sum = summarizeTranscript(payload.transcriptPath)
-if (!sum.answer) {
+const answer = readLatestAnswerTail(payload.transcriptPath)
+if (!answer) {
   process.stdout.write('{}\n')
   process.exit(0)
 }
 
-const found = pathsIn(sum.answer)
+const found = pathsIn(answer)
 const items = []
 const seen = new Set()
 for (const c of found) {
@@ -47,7 +47,7 @@ for (const c of found) {
   const lang = st.isDirectory() ? 'Directory' : (languageOf(resolved)?.name || path.extname(resolved).slice(1).toUpperCase() || 'File')
   const linePart = c.line ? `#L${c.line}` : ''
   const safeLabel = `${path.basename(resolved)}${c.line ? `:${c.line}` : ''}`.replace(/[[\]]/g, '\\$&')
-  const safeUri = encodeURI(resolved).replace(/[()]/g, ch => `%${ch.charCodeAt(0).toString(16).toUpperCase()}`)
+  const safeUri = encodeURI(resolved).replace(/[#?()]/g, ch => `%${ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`)
   items.push(`- [${safeLabel}](file://${safeUri}${linePart}) · ${lang} · ${kb}`)
   if (items.length >= 6) break
 }

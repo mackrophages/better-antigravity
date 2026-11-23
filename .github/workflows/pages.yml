@@ -1,21 +1,43 @@
-name: Deploy Better Antigravity Page
+name: CI & Deploy Better Antigravity Page
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: "pages"
+  group: "pages-${{ github.ref }}"
   cancel-in-progress: true
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install media preview decoders
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg librsvg2-bin poppler-utils
+      - name: Compile C11 statusLine strictly (-Wall -Wextra -Werror)
+        run: |
+          gcc -std=c11 -O3 -Wall -Wextra -Werror shared/better-statusline.c -o /tmp/better-statusline -lm
+      - name: Verify shared library sync & deterministic web build
+        run: |
+          node scripts/sync-shared.mjs --check
+          node scripts/build-web.mjs
+          git diff --exit-code
+      - name: Run full regression & parity test suite
+        run: node --test "test/*.test.mjs"
+
   build:
+    needs: test
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,7 +51,11 @@ jobs:
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

@@ -117,7 +117,9 @@ case "$GATE" in
       printf '{}\n'
       exit 0
     fi
-    if [ -f "$STATE_ROOT/.hud-ready" ] && [ -f "$SETTINGS_PATH" ]; then
+    if [ -f "$STATE_ROOT/.hud-ready" ] && [ -f "$SETTINGS_PATH" ] &&
+       [ ! "$HERE/better-statusline.mjs" -nt "$STATE_ROOT/.hud-ready" ] &&
+       [ ! "$HERE/better-statusline.c" -nt "$STATE_ROOT/.hud-ready" ]; then
       IFS= read -r HUD_KIND < "$STATE_ROOT/.hud-ready" 2>/dev/null || HUD_KIND=""
       if [ "$HUD_KIND" = "custom" ] && file_contains "$SETTINGS_PATH" '"statusLine"'; then
         printf '{}\n'
@@ -161,7 +163,11 @@ case "$GATE" in
       printf '{}\n'
       exit 0
     fi
+    LUI_TH=""
     case "$INPUT" in
+      *'"lastUserInput":'*) LUI_TH="${INPUT#*\"lastUserInput\":}" ;;
+    esac
+    case "$LUI_TH" in
       *+*) ;;
       *)
         if ! has_json_in "$STATE_ROOT/turn-flags"; then
@@ -187,7 +193,11 @@ case "$GATE" in
       printf '{}\n'
       exit 0
     fi
+    LUI_UH=""
     case "$INPUT" in
+      *'"lastUserInput":'*) LUI_UH="${INPUT#*\"lastUserInput\":}" ;;
+    esac
+    case "$LUI_UH" in
       *_*) ;;
       *)
         if ! has_json_in "$STATE_ROOT/turn-flags"; then
@@ -234,7 +244,13 @@ case "$GATE" in
         \~/*) TP="$HOME_EFF/${TP#\~/}" ;;
       esac
       if [ -n "$TP" ] && [ -f "$TP" ]; then
-        if ! tail -c 131072 "$TP" 2>/dev/null | grep -qE '"input_tokens":[[:space:]]*[1-9][0-9]{5,}'; then
+        # Scale pre-filter by active session window: >=100k tokens on 1M+ windows, >=10k on smaller/default windows
+        MIN_RE='"input_tokens":[[:space:]]*[1-9][0-9]{4,}'
+        if [ -f "$STATE_ROOT/context-windows/sess-$SID.json" ] &&
+           grep -qE '"windowTokens":[[:space:]]*[1-9][0-9]{6,}' "$STATE_ROOT/context-windows/sess-$SID.json" 2>/dev/null; then
+          MIN_RE='"input_tokens":[[:space:]]*[1-9][0-9]{5,}'
+        fi
+        if ! tail -c 131072 "$TP" 2>/dev/null | grep -qE "$MIN_RE"; then
           printf '{}\n'
           exit 0
         fi
@@ -249,25 +265,11 @@ case "$GATE" in
       printf '{}\n'
       exit 0
     fi
-    NEED_NODE=0
-    if extract_sid "$INPUT" && [ -f "$STATE_ROOT/time-machine/pending-$SID.flag" ]; then
-      NEED_NODE=1
-    fi
-    if [ "$NEED_NODE" = "0" ]; then
-      for _d in "$STATE_ROOT/time-machine"/*; do
-        [ -d "$_d" ] || continue
-        for _jf in "$_d"/*.json; do
-          [ -f "$_jf" ] || continue
-          if file_contains_either "$_jf" '"jumpedNoticePending": true' '"jumpedNoticePending":true'; then
-            NEED_NODE=1
-            break 2
-          fi
-        done
-      done
-    fi
-    if [ "$NEED_NODE" = "0" ]; then
-      printf '{}\n'
-      exit 0
+    if extract_sid "$INPUT"; then
+      if [ ! -f "$STATE_ROOT/time-machine/pending-$SID.flag" ] && [ ! -f "$STATE_ROOT/time-machine/jumped-$SID.flag" ]; then
+        printf '{}\n'
+        exit 0
+      fi
     fi
     printf '%s' "$INPUT" | exec node "$HERE/../tm-hook.mjs" pre-invocation
     ;;
